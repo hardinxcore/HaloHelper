@@ -1,29 +1,30 @@
-// Clear any existing timer and start a new one
-if (typeof shammamTicketPageTimer !== 'undefined') {
-    clearInterval(shammamTicketPageTimer);
-}
-var shammamTicketPageTimer = setInterval(AddShammamCopyButton, 250);
+if (typeof window.haloExtensionInitialized === 'undefined') {
+    window.haloExtensionInitialized = true;
 
-async function AddShammamCopyButton() {
-    var localStorage = await chrome.storage.local.get();
+    async function initHaloExtension() {
+        const localStorage = await chrome.storage.local.get();
 
-    // Check the options to make sure the domain has been set and the copy button is turned on
-    if (localStorage.haloAddFormattedCopyButton == false) {
-        clearInterval(shammamTicketPageTimer);
-        return;
+        if (localStorage.haloAddFormattedCopyButton == false) {
+            return;
+        }
+
+        const observer = new MutationObserver((mutations, obs) => {
+            let shareITag = document.querySelector('i.fa.fa-share-alt');
+            if (shareITag != null) {
+                let shammamCopyLinkButton = document.querySelector('#ShammamCopyLinkButton');
+                if (shammamCopyLinkButton == null) {
+                    AddShammamCopyButton(shareITag, localStorage);
+                }
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
     }
 
-    // If the standard "Share" button does not exist yet, just exit without doing anything
-    let shareITag = document.querySelector('i.fa.fa-share-alt');
-    if (shareITag == null)
-        return;
-    clearInterval(shammamTicketPageTimer);
+    initHaloExtension();
+}
 
-    // This function occasionally gets called again for some reason even after clearInterval is called
-    // So check to see if we already added the button and quit if it is already there
-    let shammamCopyLinkButton = document.querySelector('#ShammamCopyLinkButton');
-    if (shammamCopyLinkButton != null)
-        return;
+async function AddShammamCopyButton(shareITag, localStorage) {
 
     // Create new elements for the full info copy button
     let linkITag = document.createElement('i');
@@ -187,46 +188,39 @@ async function AddShammamCopyButton() {
     }
 }
 
-function ShammamCopy(HaloDomain, TicketId, TicketClient, TicketSummary) {
+async function ShammamCopy(HaloDomain, TicketId, TicketClient, TicketSummary) {
     // Build the ticket link and description from the parameters passed
     let ticketLink = 'https://' + HaloDomain + '/ticket?id=' + TicketId;
-    let ticketDescription = '';
-
+    
     // New format: TICKETID // ORGANIZATION NAME // TICKET TITLE
-    ticketDescription = TicketId;
+    let ticketDescription = TicketId;
     ticketDescription += TicketClient != null ? ' // ' + TicketClient : '';
     ticketDescription += TicketSummary != null ? ' // ' + TicketSummary : '';
 
-
-    // Using information collected, constuct link tag and add it to bottom of page. It think it should be close to no extra styling.
-    let newLink = document.createElement('a');
-    newLink.setAttribute('style', 'font-size:12pt');
-    newLink.setAttribute('href', ticketLink);
-    newLink.innerHTML = ticketDescription;
-    document.getElementsByTagName('body')[0].appendChild(newLink);
-
-    // Unselect any current selection, then select the link added to the page above.
-    window.getSelection().removeAllRanges();
-    let range = document.createRange();
-    range.selectNode(newLink);
-    window.getSelection().addRange(range);
-
-    // Copy link
-    document.execCommand('copy');
-
-    // Remove link that we had added.
-    newLink.remove();
+    try {
+        const htmlContent = `<a href="${ticketLink}" style="font-size:12pt">${ticketDescription}</a>`;
+        
+        const clipboardItem = new ClipboardItem({
+            'text/html': new Blob([htmlContent], { type: 'text/html' }),
+            'text/plain': new Blob([ticketDescription], { type: 'text/plain' })
+        });
+        
+        await navigator.clipboard.write([clipboardItem]);
+    } catch (err) {
+        console.error('Failed to copy: ', err);
+        // Fallback for older browsers
+        CopyPlainTextToClipboard(ticketDescription);
+    }
 
     // Change styling of Shammam button to a check mark
-    document.querySelector('#ShammamCopyLinkI').setAttribute('class', 'fa fa-check-circle');
+    let linkI = document.querySelector('#ShammamCopyLinkI');
+    if (linkI) linkI.setAttribute('class', 'fa fa-check-circle');
 
     // After a couple seconds revert Shammam button back to normal styling
-    let p = new Promise((resolve, reject) => {
-        // Setting 2000 ms time
-        setTimeout(resolve, 3000);
-    }).then(() => {
-        document.querySelector('#ShammamCopyLinkI').setAttribute('class', 'fa fa-link');
-    });
+    setTimeout(() => {
+        let linkIRev = document.querySelector('#ShammamCopyLinkI');
+        if (linkIRev) linkIRev.setAttribute('class', 'fa fa-link');
+    }, 3000);
 }
 
 function ShammamCopyNumber(TicketId) {
