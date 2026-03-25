@@ -2,7 +2,7 @@
    "action": {
       "default_popup": "popup.html"
    },
-   "author": "Anton Broere - SEVENP",
+   "author": "Anton Broere",
    "background": {
       "service_worker": "background.js"
    },
@@ -17,11 +17,11 @@
       "48": "/images/48.png"
    },
    "manifest_version": 3,
-   "name": "SEVENP Halo Enhancements",
+   "name": "Halo Enhancements",
    "omnibox": {
       "keyword": "HA"
    },
-   "host_permissions": [ "*://*.sevenp.halopsa.com/*" ],
+   "host_permissions": [ "*://*.halopsa.com/*", "*://*.haloitsm.com/*" ],
    "options_ui": {
       "open_in_tab": true,
       "page": "options.html"

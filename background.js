@@ -11,7 +11,7 @@ async function initializeSettings() {
         
         // Set default values if they don't exist
         const defaults = {
-            haloDomain: 'sevenp.halopsa.com',  // Fixed domain for SEVENP
+            haloDomain: '',  // Empty by default for open source users
             haloAddFormattedCopyButton: localStorage.haloAddFormattedCopyButton === undefined ? true : localStorage.haloAddFormattedCopyButton,
             haloTicketHistoryMax: localStorage.haloTicketHistoryMax === undefined ? 10 : localStorage.haloTicketHistoryMax,
             haloTicketHistory: localStorage.haloTicketHistory || []
@@ -87,8 +87,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (tab.url.startsWith('https://' + localStorage.haloDomain) && localStorage.haloDomain) {
         try {
             // Very strict check - only inject on actual content pages
-            if (tab.url.includes('sevenp.halopsa.com') && 
-                tab.url.startsWith('https://sevenp.halopsa.com') &&
+            if (tab.url.includes(localStorage.haloDomain) && 
+                tab.url.startsWith('https://' + localStorage.haloDomain) &&
                 !tab.url.includes('about:blank') && 
                 !tab.url.includes('chrome://') &&
                 !tab.url.includes('moz-extension://') &&
@@ -96,7 +96,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
                 
                 // Additional safety check - ensure tab is in a valid state
                 const tabInfo = await chrome.tabs.get(tab.id);
-                if (tabInfo && tabInfo.url && tabInfo.url.startsWith('https://sevenp.halopsa.com')) {
+                if (tabInfo && tabInfo.url && tabInfo.url.startsWith('https://' + localStorage.haloDomain)) {
                     await chrome.scripting.executeScript({
                         target: { tabId: tab.id, allFrames: false },
                         func: CopyHaloAccessToken
@@ -150,8 +150,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
             // Launch content script for ticket pages with improved error handling
             try {
                 // Very strict check - only inject on actual ticket pages
-                if (tab.url.includes('sevenp.halopsa.com') && 
-                    tab.url.startsWith('https://sevenp.halopsa.com') &&
+                if (tab.url.includes(localStorage.haloDomain) && 
+                    tab.url.startsWith('https://' + localStorage.haloDomain) &&
                     !tab.url.includes('about:blank') && 
                     !tab.url.includes('chrome://') &&
                     !tab.url.includes('moz-extension://') &&
@@ -159,7 +159,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
                     
                     // Additional safety check - ensure tab is in a valid state
                     const tabInfo = await chrome.tabs.get(tab.id);
-                    if (tabInfo && tabInfo.url && tabInfo.url.startsWith('https://sevenp.halopsa.com')) {
+                    if (tabInfo && tabInfo.url && tabInfo.url.startsWith('https://' + localStorage.haloDomain)) {
                         await chrome.scripting.executeScript({
                             target: { tabId: tab.id, allFrames: false },
                             files: ['content-tickets.js']
@@ -191,7 +191,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Log for debugging
     console.log('Message received from:', sender.tab.url);
     
-    if (!sender.tab.url.includes('sevenp.halopsa.com')) {
+    if (!sender.tab.url.includes('.halopsa.com') && !sender.tab.url.includes('.haloitsm.com')) {
         console.warn('Unauthorized request origin:', sender.tab?.url);
         sendResponse({error: 'Unauthorized request origin'});
         return;
@@ -340,7 +340,7 @@ function CopyHaloAccessToken() {
     
     try {
         // Only run on HaloPSA pages
-        if (!window.location.hostname.includes('sevenp.halopsa.com')) {
+        if (!window.location.hostname.endsWith('.halopsa.com') && !window.location.hostname.endsWith('.haloitsm.com')) {
             return;
         }
 

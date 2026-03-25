@@ -10,7 +10,7 @@ async function getOptions() {
 
     if (needsUpdate) {
         if (localstorage.haloDomain === undefined) {
-            localstorage.haloDomain = 'sevenp.halopsa.com';  // Fixed domain for SEVENP
+            localstorage.haloDomain = '';  // Empty domain for open source users
         }
         if (localstorage.haloAddFormattedCopyButton === undefined) {
             localstorage.haloAddFormattedCopyButton = true;
@@ -24,23 +24,25 @@ async function getOptions() {
     }
 
     // Set the page's options to what is stored in local storage
+    document.getElementById('haloDomainTextBox').value = localstorage.haloDomain || '';
     document.getElementById('haloAddFormattedCopyButtonCheckbox').checked = localstorage.haloAddFormattedCopyButton;
     document.getElementById('haloTicketHistoryMaxTextBox').value = localstorage.haloTicketHistoryMax;
 }
 
 async function setOptions() {
     // Halo
+    let haloDomain = document.getElementById('haloDomainTextBox').value.trim();
     let haloAddFormattedCopyButton = document.getElementById('haloAddFormattedCopyButtonCheckbox').checked;
     let haloTicketHistoryMax = document.getElementById('haloTicketHistoryMaxTextBox').value;
 
     let localStorage = {
-        'haloDomain': 'sevenp.halopsa.com',  // Fixed domain for SEVENP
+        'haloDomain': haloDomain,
         'haloAddFormattedCopyButton': haloAddFormattedCopyButton,
         'haloTicketHistoryMax': haloTicketHistoryMax
     };
 
     await chrome.storage.local.set(localStorage);
-    chrome.permissions.request({ origins: ['*://*.sevenp.halopsa.com/*'] });
+    chrome.permissions.request({ origins: ['*://*.halopsa.com/*', '*://*.haloitsm.com/*'] });
 }
 
 document.addEventListener('DOMContentLoaded', getOptions);
