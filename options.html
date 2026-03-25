@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Options</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+    <div class="mainContainer">
+        <h2>SEVENP Halo Enhancements</h2>
+        <table style="text-align:left;font-size:18px;width: 650px;">
+            <tr class="sectionRow">
+                <td colspan="2">HaloPSA</td>
+            </tr>
+            <tr class="spaceRow">
+                <td colspan="2"></td>
+            </tr>
+
+            <tr>
+                <td>Add "formatted copy" button to ticket page</td>
+                <td>
+                    <label class="switch">
+                        <input id="haloAddFormattedCopyButtonCheckbox" type="checkbox">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <td>Number of tickets to keep in history</td>
+                <td>
+                    <input type="textbox" id="haloTicketHistoryMaxTextBox" style="width:50px;">
+                </td>
+            </tr>
+            <tr class="spaceRow">
+                <td colspan="2"></td>
+            </tr>
+            <tr class="buttonRow">
+                <td colspan="2">
+                    <button id="resetButton" style="width:150px">Reset</button>
+                    <button id="saveButton" style="width:150px">Save</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <script src="options.js"></script>
+</body>
+
+</html>

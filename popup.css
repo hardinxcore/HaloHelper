@@ -1,0 +1,27 @@
+body {
+    width: 775px;
+
+    background-color: #eee;
+    color: black;
+    font-family: arial, sans-serif;
+    font-size: 10pt;
+    line-height: 25px;
+    white-space: nowrap;
+}
+
+a {
+    text-decoration: none;
+    color: black;
+}
+
+a:link {}
+
+a:hover {
+    color: #FE5000;
+}
+
+a:active {}
+
+.TicketsDiv {
+    width: 2000px;
+}
