@@ -2,14 +2,14 @@
    "action": {
       "default_popup": "popup.html"
    },
-   "author": "Anton Broere",
+   "author": "hardinxcore",
    "background": {
       "service_worker": "background.js"
    },
    "content_security_policy": {
       "extension_pages": "script-src 'self'; object-src 'self';"
    },
-   "description": "Adds buttons and functionality to HaloPSA",
+   "description": "Adds buttons and functionality to HaloPSA and HaloITSM",
    "icons": {
       "128": "/images/128.png",
       "16": "/images/16.png",
@@ -17,15 +17,23 @@
       "48": "/images/48.png"
    },
    "manifest_version": 3,
-   "name": "Halo Enhancements",
+   "name": "Halo Helper",
    "omnibox": {
       "keyword": "HA"
    },
-   "host_permissions": [ "*://*.halopsa.com/*", "*://*.haloitsm.com/*" ],
+   "host_permissions": [
+      "*://*.halopsa.com/*",
+      "*://*.haloitsm.com/*"
+   ],
    "options_ui": {
       "open_in_tab": true,
       "page": "options.html"
    },
-   "permissions": [ "tabs", "scripting", "storage", "cookies" ],
+   "permissions": [
+      "tabs",
+      "scripting",
+      "storage",
+      "cookies"
+   ],
    "version": "1.0"
 }

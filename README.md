@@ -1,4 +1,4 @@
-# Halo Enhancements
+# Halo Helper
 
 A modern Chrome / Microsoft Edge extension designed to improve the workflow for engineers using **HaloPSA** and **HaloITSM**. It seamlessly adds helpful shortcuts and copy tools directly into the Halo interface.
 
