@@ -1,8 +1,8 @@
-# SEVENP Halo Enhancements
+# Halo Enhancements
 
-A modern Chrome / Microsoft Edge extension designed to improve the workflow for engineers using **HaloPSA**. It seamlessly adds helpful shortcuts and copy tools directly into the HaloPSA interface.
+A modern Chrome / Microsoft Edge extension designed to improve the workflow for engineers using **HaloPSA** and **HaloITSM**. It seamlessly adds helpful shortcuts and copy tools directly into the Halo interface.
 
-*(Let op: deze extensie is in de basis ingericht voor het SEVENP domein. Om het voor andere HaloPSA tenants te gebruiken, dient de broncode of configuratie minimaal te worden aangepast).*
+*(This extension is open-source and can be easily configured to work with any HaloPSA or HaloITSM tenant domain).*
 
 ## ✨ Features
 
@@ -28,7 +28,8 @@ Since this extension is not published on the Chrome Web Store, you can install i
 
 1. Click on the extension icon in your browser toolbar.
 2. Select **Options** (of *Opties*).
-3. Here you can tweak:
+3. **Important:** Enter your company's specific Halo domain in the "Halo/ITSM Domain" input field (e.g., `company.halopsa.com`). 
+4. Here you can also tweak:
    - Whether the custom copy buttons should be rendered on ticket pages.
    - The maximum amount of recent tickets saved in your history (default: 10).
 
