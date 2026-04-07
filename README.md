@@ -7,7 +7,7 @@ A modern Chrome / Microsoft Edge extension designed to improve the workflow for 
 ## ✨ Features
 
 - **Quick Copy Buttons**: Adds specialized buttons next to the "Share" button on any Ticket page to instantly copy:
-  - Formatted Ticket Link (`TICKETID // ORGANIZATION NAME // TICKET TITLE`)
+  - Formatted Ticket Link (`TICKETID // KLANTID // ORGANIZATION NAME // TICKET TITLE`)
   - Ticket Number only
   - Customer Account ID (smartly extracted via APIs and DOM reading)
 - **Omnibox Search Integration**: Type `HA` followed by a space and a ticket number in your browser's address bar to instantly jump to that ticket in HaloPSA.
@@ -33,7 +33,13 @@ Since this extension is not published on the Chrome Web Store, you can install i
    - Whether the custom copy buttons should be rendered on ticket pages.
    - The maximum amount of recent tickets saved in your history (default: 10).
 
-## 🔒 Privacy & Permissions
+## � Changelog
+
+### April 2026
+- **KLANTID toegevoegd aan copy-formaat**: De geformatteerde ticketlink bevat nu ook de `CFCustomerExternalReference` (Externe referentie klant) als KLANTID-segment: `TICKETID // KLANTID // ORGANIZATION NAME // TICKET TITLE`.
+- **Ticket-geschiedenis bijgewerkt**: De popup-ticketgeschiedenis toont nu hetzelfde 4-delige formaat inclusief KLANTID.
+
+## �🔒 Privacy & Permissions
 
 This extension runs completely locally in your browser. It does not contain telemetry, tracking, or outside analytics.
 - `storage`: Used to save your settings and local ticket history.
