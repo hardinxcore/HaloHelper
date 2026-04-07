@@ -27,7 +27,7 @@ async function showTicketHistory() {
             if (directValue && directValue !== '0') return directValue;
         }
 
-        return '-';
+        return null;
     }
 
     localStorage.haloTicketHistory.forEach(ticket => {
@@ -35,8 +35,10 @@ async function showTicketHistory() {
         link.setAttribute('target', '_blank');
         link.setAttribute('href', 'https://' + localStorage.haloDomain + '/ticket?id=' + ticket.id);
         // Format: TICKETID // KLANTID // ORGANIZATION NAME // TICKET TITLE
+        // KLANTID segment is omitted (including its slashes) when no value is found
         const klantId = extractKlantId(ticket);
-        link.innerText = ticket.id + ' // ' + klantId + ' // ' + ticket.client_name + ' // ' + ticket.summary;
+        const klantIdSegment = klantId != null ? ' // ' + klantId : '';
+        link.innerText = ticket.id + klantIdSegment + ' // ' + ticket.client_name + ' // ' + ticket.summary;
 
         let ticketsDiv = document.querySelector('#TicketsDiv');
         ticketsDiv.appendChild(link);
