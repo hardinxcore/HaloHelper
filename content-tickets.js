@@ -85,10 +85,38 @@ async function AddShammamCopyButton(shareITag, localStorage) {
             });
         });
 
+        // Extract "Externe referentie klant" (KLANTID) from ticket custom fields
+        // Prefer exact field name: CFCustomerExternalReference
+        let klantId = null;
+        if (ticket.customfields && Array.isArray(ticket.customfields)) {
+            for (const field of ticket.customfields) {
+                if (!field) continue;
+                const fieldName = (field.name || field.fieldname || field.label || field.id || '').toString().toLowerCase();
+
+                // Primary match requested by user
+                const isExactExternalRefField = fieldName === 'cfcustomerexternalreference';
+
+                // Fallback match for tenants using translated/custom labels
+                const isFallbackMatch =
+                    fieldName.includes('externe referentie') ||
+                    fieldName.includes('klantid') ||
+                    fieldName.includes('external reference');
+
+                if (isExactExternalRefField || isFallbackMatch) {
+                    const val = (field.value || '').toString().trim();
+                    if (val && val !== '0') {
+                        klantId = val;
+                        break;
+                    }
+                }
+            }
+        }
+
         // Store ticket data securely without string injection
         linkButton.ticketData = {
             domain: localStorage.haloDomain,
             id: ticketId,
+            klantId: klantId,
             client: ticket.client_name,
             summary: ticket.summary
         };
@@ -100,7 +128,7 @@ async function AddShammamCopyButton(shareITag, localStorage) {
         // Use secure event listeners instead of onclick attributes
         linkButton.addEventListener('click', function() {
             const data = this.ticketData;
-            ShammamCopy(data.domain, data.id, data.client, data.summary);
+            ShammamCopy(data.domain, data.id, data.klantId, data.client, data.summary);
         });
         
         numberButton.addEventListener('click', function() {
@@ -110,7 +138,7 @@ async function AddShammamCopyButton(shareITag, localStorage) {
         console.error('Error fetching ticket data:', error);
         // Still add the buttons even if API call fails - use secure event listeners
         linkButton.addEventListener('click', function() {
-            ShammamCopy(localStorage.haloDomain, ticketId, 'Error loading client', 'Error loading summary');
+            ShammamCopy(localStorage.haloDomain, ticketId, null, 'Error loading client', 'Error loading summary');
         });
         
         numberButton.addEventListener('click', function() {
@@ -188,12 +216,13 @@ async function AddShammamCopyButton(shareITag, localStorage) {
     }
 }
 
-async function ShammamCopy(HaloDomain, TicketId, TicketClient, TicketSummary) {
+async function ShammamCopy(HaloDomain, TicketId, KlantId, TicketClient, TicketSummary) {
     // Build the ticket link and description from the parameters passed
     let ticketLink = 'https://' + HaloDomain + '/ticket?id=' + TicketId;
     
-    // New format: TICKETID // ORGANIZATION NAME // TICKET TITLE
+    // Format: TICKETID // KLANTID // ORGANIZATION NAME // TICKET TITLE
     let ticketDescription = TicketId;
+    ticketDescription += KlantId != null ? ' // ' + KlantId : '';
     ticketDescription += TicketClient != null ? ' // ' + TicketClient : '';
     ticketDescription += TicketSummary != null ? ' // ' + TicketSummary : '';
 
