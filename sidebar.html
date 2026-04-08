@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>HaloPSA Helper</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header with first logo -->
+      <div class="header">
+        <div class="logo-container">
+          <img
+            src="images/full.png"
+            alt="HaloPSA"
+            onerror="this.src='images/128.png';"
+          />
+        </div>
+        <div class="header-controls">
+          <button id="dark-mode-toggle" class="dark-mode-toggle" title="Toggle Dark Mode (Ctrl+D)">
+            <img id="dark-mode-icon" class="dark-mode-icon" src="icons/dark-mode.png" alt="Dark Mode">
+          </button>
+        </div>
+      </div>
+
+
+
+      <!-- Navigation -->
+      <div class="navigation">
+        <nav class="nav-menu">
+          <button class="nav-item active" data-section="search" title="Search Articles">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <span>Search</span>
+          </button>
+          <button class="nav-item" data-section="favorites" title="Favorite Articles">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+            <span>Favorites</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Content Container -->
+      <div class="content-container">
+        <!-- Search wrapper -->
+        <div class="search-wrapper">
+          <input type="text" id="search" placeholder="Type to search..." />
+        </div>
+        
+        <!-- Auto-scan toggle -->
+        <div class="scan-wrapper">
+          <div class="scan-toggle-container">
+            <label class="scan-toggle-label">
+              <input type="checkbox" id="auto-scan-toggle" class="scan-toggle">
+              <span class="scan-toggle-slider"></span>
+              <span class="scan-toggle-text">Auto-scan</span>
+            </label>
+          </div>
+          <div id="auto-scan-indicator" class="auto-scan-indicator" style="display: none;">
+            <span>🔄</span> Auto-scanning...
+          </div>
+        </div>
+
+      <!-- NinjaOne Guide Content Section -->
+      <div id="ninjaone-section" class="ninjaone-section" style="display: none">
+        <div class="section-header">
+          <div class="section-header-left">
+            <button
+              id="toggle-ninjaone"
+              class="toggle-ninjaone-btn"
+              title="Toggle guide content"
+            >
+              ▼
+            </button>
+            <h3>HaloPSA Guide Content</h3>
+          </div>
+          <div class="section-header-right">
+            <button
+              id="clear-ninjaone"
+              class="clear-ninjaone-btn"
+              title="Clear Guide Content"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <div id="ninjaone-content" class="ninjaone-content"></div>
+      </div>
+      <!-- Bulk Actions Bar -->
+      <div id="bulk-actions" class="bulk-actions" style="display: none;">
+        <div class="bulk-actions-content">
+          <span id="bulk-count" class="bulk-count">0 selected</span>
+          <div class="bulk-buttons">
+            <button id="bulk-pin" class="bulk-btn bulk-pin-btn" title="Pin Selected Articles">
+              📌 Pin Selected
+            </button>
+            <button id="bulk-unpin" class="bulk-btn bulk-unpin-btn" title="Unpin Selected Articles">
+              📌 Unpin Selected
+            </button>
+            <button id="bulk-clear" class="bulk-btn bulk-clear-btn" title="Clear Selection">
+              ✕ Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Favorites Section -->
+      <div id="favorites-section" class="favorites-section" style="display: none">
+        <div class="section-header">
+          <div class="section-header-left">
+            <h3>Favorite Articles</h3>
+          </div>
+        </div>
+        <div id="favorites-articles"></div>
+      </div>
+
+      <!-- Categories Section -->
+      <div id="categories-section" class="categories-section" style="display: none">
+        <div class="section-header">
+          <div class="section-header-left">
+            <button
+              id="toggle-categories"
+              class="toggle-categories-btn"
+              title="Toggle categories"
+            >
+              ▼
+            </button>
+            <h3>📁 Categories</h3>
+          </div>
+          <div class="section-header-right">
+            <button
+              id="add-category"
+              class="add-category-btn"
+              title="Add New Category"
+            >
+              +
+            </button>
+          </div>
+        </div>
+        <div id="categories-list"></div>
+      </div>
+
+
+      <!-- Pinned Articles Section -->
+      <div id="pinned-section" class="pinned-section" style="display: none">
+        <div class="section-header">
+          <div class="section-header-left">
+            <button
+              id="toggle-pinned"
+              class="toggle-pinned-btn"
+              title="Toggle pinned articles"
+            >
+              ▼
+            </button>
+            <h3>Pinned Articles</h3>
+          </div>
+          <div class="section-header-right">
+            <button
+              id="clear-pinned"
+              class="clear-pinned-btn"
+              title="Clear All Pinned Articles"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <div class="pinned-actions-container">
+          <button id="copy-all-btn" class="copy-all-btn" title="Copy All Pinned Articles">
+            <img src="icons/copy-all.png" alt="Copy All" class="copy-all-icon"> Copy All
+          </button>
+          <button id="export-btn" class="export-btn" title="Export Pinned Articles as TXT (Ctrl+E)">
+            <img src="icons/export.png" alt="Export" class="export-icon"> Export TXT
+          </button>
+        </div>
+        <div id="pinned-articles"></div>
+      </div>
+
+      <!-- Scanned Content Section -->
+      <div id="scanned-section" class="scanned-section" style="display: none">
+        <div class="section-header">
+          <div class="section-header-left">
+            <button
+              id="toggle-scanned"
+              class="toggle-scanned-btn"
+              title="Toggle scanned content"
+            >
+              ▼
+            </button>
+            <h3>Suggested Articles</h3>
+          </div>
+          <div class="section-header-right">
+            <button
+              id="clear-scanned"
+              class="clear-scanned-btn"
+              title="Clear Scanned Content"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+         <div id="scanned-content"></div>
+         <div id="crumbs-results" class="crumbs-results"></div>
+      </div>
+
+      <!-- Results container -->
+      <div id="results">
+        <p>Type a keyword to search KB articles...</p>
+      </div>
+
+
+      <!-- Keyboard Shortcuts Help -->
+      <div id="shortcuts-help" class="shortcuts-help" style="display: none;">
+        <div class="shortcuts-header">
+          <h3>Keyboard Shortcuts</h3>
+          <button id="close-shortcuts" class="close-shortcuts-btn" title="Close Help">×</button>
+        </div>
+        <div class="shortcuts-content">
+          <div class="shortcut-item">
+            <kbd>Ctrl</kbd> + <kbd>K</kbd>
+            <span>Focus search input</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>Ctrl</kbd> + <kbd>D</kbd>
+            <span>Toggle dark mode</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>Ctrl</kbd> + <kbd>E</kbd>
+            <span>Export pinned articles</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>Esc</kbd>
+            <span>Clear search / Close modals</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>?</kbd>
+            <span>Show/hide shortcuts help</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>Enter</kbd>
+            <span>Search (when focused)</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>
+            <span>Show storage info</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Storage Debug Panel -->
+      <div id="storage-debug" class="storage-debug" style="display: none;">
+        <div class="storage-debug-header">
+          <h3>Storage Information</h3>
+          <button id="close-storage-debug" class="close-storage-debug-btn" title="Close Storage Info">×</button>
+        </div>
+        <div class="storage-debug-content">
+          <div id="storage-info-content"></div>
+          <div class="storage-debug-actions">
+            <button id="export-storage-data" class="storage-debug-btn">Export All Data</button>
+            <button id="cleanup-duplicates" class="storage-debug-btn">Clean Duplicates</button>
+            <button id="clear-all-storage" class="storage-debug-btn storage-clear-btn">Clear All Storage</button>
+          </div>
+        </div>
+      </div>
+      </div>
+      </div> <!-- End content-container -->
+
+    <script src="storage-manager.js"></script>
+    <script src="sidebar.js"></script>
+  </body>
+</html>

@@ -9,7 +9,7 @@
    "content_security_policy": {
       "extension_pages": "script-src 'self'; object-src 'self';"
    },
-   "description": "Adds buttons and functionality to HaloPSA and HaloITSM",
+   "description": "Adds buttons and functionality to HaloPSA and HaloPSA",
    "icons": {
       "128": "/images/128.png",
       "16": "/images/16.png",
@@ -33,7 +33,11 @@
       "tabs",
       "scripting",
       "storage",
-      "cookies"
+      "cookies",
+      "sidePanel"
    ],
-   "version": "1.3"
+   "side_panel": {
+      "default_path": "sidebar.html"
+   },
+   "version": "1.4"
 }

@@ -191,7 +191,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Log for debugging
     console.log('Message received from:', sender.tab.url);
     
-    if (!sender.tab.url.includes('.halopsa.com') && !sender.tab.url.includes('.haloitsm.com')) {
+    if (!sender.tab.url.includes('.halopsa.com') && !sender.tab.url.includes('.HaloPSA.com')) {
         console.warn('Unauthorized request origin:', sender.tab?.url);
         sendResponse({error: 'Unauthorized request origin'});
         return;
@@ -340,7 +340,7 @@ function CopyHaloAccessToken() {
     
     try {
         // Only run on HaloPSA pages
-        if (!window.location.hostname.endsWith('.halopsa.com') && !window.location.hostname.endsWith('.haloitsm.com')) {
+        if (!window.location.hostname.endsWith('.halopsa.com') && !window.location.hostname.endsWith('.HaloPSA.com')) {
             return;
         }
 
@@ -370,3 +370,52 @@ function CopyHaloAccessToken() {
         // Complete silence for any errors - no logging at all
     }
 }
+
+// Listen for tab updates to trigger auto-scan
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  // Only trigger on completed page loads
+  if (changeInfo.status === 'complete' && tab.url) {
+    // Skip restricted pages
+    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      return;
+    }
+
+    try {
+      // Send message to sidebar to trigger auto-scan
+      chrome.runtime.sendMessage({
+        action: 'tabUpdated',
+        tabId: tabId,
+        url: tab.url
+      }, (response) => {
+        // Handle response or error silently
+        if (chrome.runtime.lastError) {
+          // Sidebar might not be open, ignore error
+          console.log('Sidebar not available for tab update notification');
+        }
+      });
+    } catch (error) {
+      // Sidebar might not be open, ignore error
+      console.log('Sidebar not available for tab update notification');
+    }
+  }
+});
+
+// Listen for tab activation to trigger auto-scan
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  try {
+    // Send message to sidebar to trigger auto-scan
+    chrome.runtime.sendMessage({
+      action: 'tabActivated',
+      tabId: activeInfo.tabId
+    }, (response) => {
+      // Handle response or error silently
+      if (chrome.runtime.lastError) {
+        // Sidebar might not be open, ignore error
+        console.log('Sidebar not available for tab activation notification');
+      }
+    });
+  } catch (error) {
+    // Sidebar might not be open, ignore error
+    console.log('Sidebar not available for tab activation notification');
+  }
+});

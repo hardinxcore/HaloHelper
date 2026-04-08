@@ -25,3 +25,19 @@ a:active {}
 .TicketsDiv {
     width: 2000px;
 }
+
+.searchAction {
+    background-color: #fe5000;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 10px;
+}
+.searchAction:hover {
+    background-color: #e64800;
+}
