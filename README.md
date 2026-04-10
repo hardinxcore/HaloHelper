@@ -7,9 +7,9 @@ A modern Chrome / Microsoft Edge extension designed to improve the workflow for 
 ## ✨ Features
 
 - **Quick Copy Buttons**: Adds specialized buttons next to the "Share" button on any Ticket page to instantly copy:
-  - Formatted Ticket Link (`TICKETID // KLANTID // ORGANIZATION NAME // TICKET TITLE`)
+  - Formatted Ticket Link (`TICKETID // CustomerID // ORGANIZATION NAME // TICKET TITLE`)
   - Ticket Number only
-  - Customer Account ID (smartly extracted via APIs and DOM reading)
+  - CustomerID (smartly extracted via APIs and DOM reading)
 - **Omnibox Search Integration**: Type `HA` followed by a space and a ticket number in your browser's address bar to instantly jump to that ticket in HaloPSA.
 - **Ticket History**: Click on the extension icon to see a quick popup with your 10 most recently visited tickets.
 - **Secure & Fast**: Uses native Manifest V3 `MutationObserver` and Chrome's `ClipboardItem` API for instant, seamless integration. Authentication with the Halo API runs via your own active browser session cookies.
@@ -21,13 +21,13 @@ Since this extension is not published on the Chrome Web Store, you can install i
 1. Download or git clone this repository to a folder on your computer.
 2. Open Google Chrome (or Microsoft Edge) and go to `chrome://extensions/` (or `edge://extensions/`).
 3. Toggle on **Developer mode** in the top right corner.
-4. Click **Load unpacked** (of *Uitgepakte extensie laden*).
+4. Click **Load unpacked**.
 5. Select the folder containing the `manifest.json` file of this repository.
 
 ## ⚙️ Configuration
 
 1. Click on the extension icon in your browser toolbar.
-2. Select **Options** (of *Opties*).
+2. Select **Options**.
 3. **Important:** Enter your company's specific Halo domain in the "Halo/ITSM Domain" input field (e.g., `company.halopsa.com`). 
 4. Here you can also tweak:
    - Whether the custom copy buttons should be rendered on ticket pages.
@@ -36,8 +36,8 @@ Since this extension is not published on the Chrome Web Store, you can install i
 ## � Changelog
 
 ### April 2026
-- **KLANTID toegevoegd aan copy-formaat**: De geformatteerde ticketlink bevat nu ook de `CFCustomerExternalReference` (Externe referentie klant) als KLANTID-segment: `TICKETID // KLANTID // ORGANIZATION NAME // TICKET TITLE`.
-- **Ticket-geschiedenis bijgewerkt**: De popup-ticketgeschiedenis toont nu hetzelfde 4-delige formaat inclusief KLANTID.
+- **CustomerID added to copy format**: The formatted ticket link now includes `CFCustomerExternalReference` (external customer reference) as the CustomerID segment: `TICKETID // CustomerID // ORGANIZATION NAME // TICKET TITLE`.
+- **Ticket history updated**: The popup ticket history now shows the same 4-part format including CustomerID.
 
 ## �🔒 Privacy & Permissions
 
