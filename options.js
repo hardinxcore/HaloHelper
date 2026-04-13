@@ -1,4 +1,10 @@
 async function getOptions() {
+    const manifestVersion = chrome.runtime.getManifest().version;
+    const versionLabel = document.getElementById('extensionVersionLabel');
+    if (versionLabel) {
+        versionLabel.textContent = `Version: ${manifestVersion}`;
+    }
+
     // Get local storage
     let localstorage = await chrome.storage.local.get();
 

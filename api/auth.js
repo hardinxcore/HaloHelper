@@ -7,7 +7,7 @@
 class HaloAuth {
     static requestCount = 0;
     static lastRequestTime = 0;
-    static MAX_REQUESTS_PER_MINUTE = 30;
+    static MAX_REQUESTS_PER_MINUTE = 120;
 
     static async getAccessToken() {
         try {
@@ -97,7 +97,10 @@ class HaloAuth {
             }
 
             if (!response.ok) {
-                throw new Error(`API request failed with status ${response.status}: ${response.statusText}`);
+                let errorBody = '';
+                try { errorBody = await response.text(); } catch (_) {}
+                console.error(`[HaloHelper] API ${response.status} ${response.statusText}`, url, errorBody);
+                throw new Error(`API request failed with status ${response.status}: ${response.statusText}. Body: ${errorBody.slice(0, 500)}`);
             }
 
             return response;

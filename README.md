@@ -12,6 +12,7 @@ A modern Chrome / Microsoft Edge extension designed to improve the workflow for 
   - CustomerID (smartly extracted via APIs and DOM reading)
 - **Omnibox Search Integration**: Type `HA` followed by a space and a ticket number in your browser's address bar to instantly jump to that ticket in HaloPSA.
 - **Ticket History**: Click on the extension icon to see a quick popup with your 10 most recently visited tickets.
+- **Bulk Plan Date Update**: On ticket list pages, select multiple tickets and use the floating bulk action to update the Plan date custom field in one go. Supports both absolute dates (`YYYY-MM-DD`) and relative shifts (for example `+7d`).
 - **Secure & Fast**: Uses native Manifest V3 `MutationObserver` and Chrome's `ClipboardItem` API for instant, seamless integration. Authentication with the Halo API runs via your own active browser session cookies.
 
 ## 🚀 Installation (Developer Mode)
@@ -38,6 +39,7 @@ Since this extension is not published on the Chrome Web Store, you can install i
 ### April 2026
 - **CustomerID added to copy format**: The formatted ticket link now includes `CFCustomerExternalReference` (external customer reference) as the CustomerID segment: `TICKETID // CustomerID // ORGANIZATION NAME // TICKET TITLE`.
 - **Ticket history updated**: The popup ticket history now shows the same 4-part format including CustomerID.
+- **Bulk Plan Date for queues**: You can now update the Plan date custom field for multiple selected tickets on ticket list pages.
 
 ## �🔒 Privacy & Permissions
 

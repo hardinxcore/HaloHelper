@@ -1,5 +1,6 @@
 importScripts('/api/auth.js');
 importScripts('/api/get-ticket.js');
+importScripts('/api/update-ticket.js');
 
 // Initialize extension settings on startup/install
 chrome.runtime.onStartup.addListener(initializeSettings);
@@ -114,6 +115,34 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         }
     }
 
+    // Inject content script on ALL Halo domain pages so the persistent
+    // MutationObserver can detect ticket pages during SPA navigation.
+    if (tab.url.startsWith('https://' + localStorage.haloDomain) && localStorage.haloDomain) {
+        try {
+            if (tab.url.includes(localStorage.haloDomain) &&
+                !tab.url.includes('about:blank') &&
+                !tab.url.includes('chrome://') &&
+                !tab.url.includes('moz-extension://') &&
+                tab.id && tab.id !== chrome.tabs.TAB_ID_NONE) {
+
+                const tabInfo = await chrome.tabs.get(tab.id);
+                if (tabInfo && tabInfo.url && tabInfo.url.startsWith('https://' + localStorage.haloDomain)) {
+                    await chrome.scripting.executeScript({
+                        target: { tabId: tab.id, allFrames: false },
+                        files: ['content-tickets.js']
+                    });
+                }
+            }
+        } catch (error) {
+            if (!error.message.includes('sandboxed') &&
+                !error.message.includes('about:blank') &&
+                !error.message.includes('Cannot access') &&
+                !error.message.includes('frame')) {
+                console.log('Could not inject content script:', error.message);
+            }
+        }
+    }
+
     // Ticket pages (/ticket and /tickets)
     if (tab.url.startsWith('https://' + localStorage.haloDomain) && tab.url.includes('/ticket')) {
         // Get ticket ID from page URL
@@ -148,32 +177,17 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
             }
 
             // Launch content script for ticket pages with improved error handling
+            // (content-tickets.js is already injected on all Halo pages above,
+            //  so this is a no-op safety net — the guard in the script prevents duplicates)
             try {
-                // Very strict check - only inject on actual ticket pages
-                if (tab.url.includes(localStorage.haloDomain) && 
-                    tab.url.startsWith('https://' + localStorage.haloDomain) &&
-                    !tab.url.includes('about:blank') && 
-                    !tab.url.includes('chrome://') &&
-                    !tab.url.includes('moz-extension://') &&
-                    tab.id && tab.id !== chrome.tabs.TAB_ID_NONE) {
-                    
-                    // Additional safety check - ensure tab is in a valid state
-                    const tabInfo = await chrome.tabs.get(tab.id);
-                    if (tabInfo && tabInfo.url && tabInfo.url.startsWith('https://' + localStorage.haloDomain)) {
-                        await chrome.scripting.executeScript({
-                            target: { tabId: tab.id, allFrames: false },
-                            files: ['content-tickets.js']
-                        });
-                    }
+                if (tab.id && tab.id !== chrome.tabs.TAB_ID_NONE) {
+                    await chrome.scripting.executeScript({
+                        target: { tabId: tab.id, allFrames: false },
+                        files: ['content-tickets.js']
+                    });
                 }
             } catch (error) {
-                // Completely silent for sandbox errors
-                if (!error.message.includes('sandboxed') && 
-                    !error.message.includes('about:blank') &&
-                    !error.message.includes('Cannot access') &&
-                    !error.message.includes('frame')) {
-                    console.log('Could not inject content script:', error.message);
-                }
+                // silent
             }
         }
     }
@@ -319,6 +333,42 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sendResponse({error: `Failed to retrieve client data: ${error.message}`});
             });
         return true; // Keep the message channel open for async response
+    }
+
+    if (request.action === 'bulkUpdatePlanDate') {
+        if (!Array.isArray(request.ticketIds) || request.ticketIds.length === 0) {
+            sendResponse({error: 'No ticket IDs provided'});
+            return;
+        }
+
+        const sanitizedTicketIds = request.ticketIds
+            .map(id => String(id || '').replace(/[^0-9]/g, ''))
+            .filter(id => id.length > 0);
+
+        if (sanitizedTicketIds.length === 0) {
+            sendResponse({error: 'Invalid ticket IDs provided'});
+            return;
+        }
+
+        const relativeDays = Number.isInteger(request.relativeDays) ? request.relativeDays : null;
+        const absoluteDate = typeof request.absoluteDate === 'string' ? request.absoluteDate.trim() : '';
+
+        if (relativeDays === null && !/^\d{4}-\d{2}-\d{2}$/.test(absoluteDate)) {
+            sendResponse({error: 'Invalid date format. Use YYYY-MM-DD or relative days.'});
+            return;
+        }
+
+        BulkUpdateTicketPlanDate(sanitizedTicketIds, {
+            relativeDays,
+            absoluteDate: absoluteDate || null
+        })
+            .then(result => sendResponse(result))
+            .catch(error => {
+                console.error('Bulk update failed:', error);
+                sendResponse({error: error.message || 'Bulk update failed'});
+            });
+
+        return true;
     }
     
     // Unknown action
