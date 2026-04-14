@@ -15,7 +15,11 @@ async function initializeSettings() {
             haloDomain: '',  // Empty by default for open source users
             haloAddFormattedCopyButton: localStorage.haloAddFormattedCopyButton === undefined ? true : localStorage.haloAddFormattedCopyButton,
             haloTicketHistoryMax: localStorage.haloTicketHistoryMax === undefined ? 10 : localStorage.haloTicketHistoryMax,
-            haloTicketHistory: localStorage.haloTicketHistory || []
+            haloTicketHistory: localStorage.haloTicketHistory || [],
+            haloPlanDateEnabled: localStorage.haloPlanDateEnabled === undefined ? true : localStorage.haloPlanDateEnabled,
+            haloPlanDateFieldId: localStorage.haloPlanDateFieldId === undefined ? 239 : localStorage.haloPlanDateFieldId,
+            haloPlanDateFieldName: localStorage.haloPlanDateFieldName === undefined ? 'Plandatum' : localStorage.haloPlanDateFieldName,
+            haloPlanDateDashes: localStorage.haloPlanDateDashes === undefined ? true : localStorage.haloPlanDateDashes
         };
         
         // Only update values that are undefined
@@ -369,10 +373,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
         }
 
-        BulkUpdateTicketPlanDate(sanitizedTicketIds, {
-            relativeDays,
-            absoluteDate: absoluteDate || null,
-            plandatumByTicket
+        // Read configured field ID from storage, then run the update
+        chrome.storage.local.get('haloPlanDateFieldId').then(storageData => {
+            const fieldId = storageData.haloPlanDateFieldId || 239;
+            return BulkUpdateTicketPlanDate(sanitizedTicketIds, {
+                relativeDays,
+                absoluteDate: absoluteDate || null,
+                plandatumByTicket,
+                fieldId
+            });
         })
             .then(result => sendResponse(result))
             .catch(error => {

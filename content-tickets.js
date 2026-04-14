@@ -31,6 +31,9 @@
 
         const localStorage = await chrome.storage.local.get();
 
+        // Cache configured Plandate column name for collectSelectedTickets()
+        window._haloPlanDateFieldName = localStorage.haloPlanDateFieldName || 'Plandatum';
+
         // --- Single ticket page: copy buttons ---
         if (localStorage.haloAddFormattedCopyButton !== false) {
             const shareITag = document.querySelector('i.fa.fa-share-alt');
@@ -39,9 +42,14 @@
             }
         }
 
-        // --- Ticket list page: inject into Edit dropdown ---
-        if (isTicketListPage()) {
+        // --- Ticket list page: inject into Edit dropdown (if Plandate module enabled) ---
+        if (isTicketListPage() && localStorage.haloPlanDateEnabled !== false) {
             injectEditMenuPlanDate();
+        }
+
+        // --- Replace date slashes with dashes across the entire page ---
+        if (localStorage.haloPlanDateDashes !== false) {
+            replaceDateSlashes();
         }
     }, 150);
 
@@ -91,11 +99,44 @@ function isTicketListPage() {
 }
 
 // ============================================================
+//  Date formatting  (replace slashes with dashes in all date fields)
+// ============================================================
+
+const DATE_SLASH_RE = /\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/g;
+
+function replaceDateSlashes() {
+    // Walk ALL text nodes on the page and replace date-pattern slashes with dashes.
+    // Uses a TreeWalker for efficiency and to avoid touching non-text DOM.
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+            // Quick pre-filter: skip nodes that can't contain a date with slashes
+            if (!node.nodeValue || !node.nodeValue.includes('/')) return NodeFilter.FILTER_REJECT;
+            if (!DATE_SLASH_RE.test(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+            DATE_SLASH_RE.lastIndex = 0; // reset after .test()
+            // Skip script/style/textarea content
+            const tag = node.parentElement && node.parentElement.tagName;
+            if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'TEXTAREA' || tag === 'INPUT')
+                return NodeFilter.FILTER_REJECT;
+            return NodeFilter.FILTER_ACCEPT;
+        }
+    });
+
+    let node;
+    while (node = walker.nextNode()) {
+        // Replace only the slash separators inside date patterns, not all slashes
+        node.nodeValue = node.nodeValue.replace(DATE_SLASH_RE, '$1-$2-$3');
+    }
+}
+
+// ============================================================
 //  Selection tracking  (reads .rt-tr-group rows with checked checkboxes)
 // ============================================================
 
 function collectSelectedTickets() {
     const tickets = [];
+
+    // Read configured column name (set by schedulePageCheck via storage)
+    const planDateColName = (window._haloPlanDateFieldName || 'Plandatum').toLowerCase();
 
     // Dynamically find column indices by scanning header text
     const headers = document.querySelectorAll('.rt-thead .rt-th');
@@ -103,7 +144,7 @@ function collectSelectedTickets() {
     headers.forEach((h, idx) => {
         const text = h.textContent.trim().toLowerCase();
         if (text === 'summary') summaryIdx = idx;
-        if (text === 'plandatum') plandatumIdx = idx;
+        if (text === planDateColName) plandatumIdx = idx;
     });
 
     const rows = document.querySelectorAll('.rt-tr-group[id]');
@@ -425,6 +466,7 @@ async function AddShammamCopyButton(shareITag, localStorage) {
     let linkButton = document.createElement('button');
     linkButton.id = 'ShammamCopyLinkButton';
     linkButton.setAttribute('class', 'solidbutton fabtn notext');
+    linkButton.setAttribute('title', 'Copy formatted ticket link');
     linkButton.appendChild(linkITag);
 
     // Create new elements for the ticket number only copy button
@@ -434,6 +476,7 @@ async function AddShammamCopyButton(shareITag, localStorage) {
     let numberButton = document.createElement('button');
     numberButton.id = 'ShammamCopyNumberButton';
     numberButton.setAttribute('class', 'solidbutton fabtn notext');
+    numberButton.setAttribute('title', 'Copy ticket number');
     numberButton.appendChild(numberITag);
 
     // Create new elements for the customer/account number copy button (company icon)

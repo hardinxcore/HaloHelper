@@ -36,14 +36,19 @@ Since this extension is not published on the Chrome Web Store, you can install i
 
 ## � Changelog
 
+### v1.7 — April 2026
+- **Date format fix**: All dates displayed by HaloPSA with slashes (e.g. `14/04/2026`) are automatically replaced with dashes (`14-04-2026`) for improved readability. This can be toggled off in extension options.
+- **Configurable Plandate module**: The Plandate custom field ID, column name, and module toggle are now configurable in extension options. Defaults remain unchanged (field 239, column "Plandatum", enabled).
+- **Quick Copy button tooltips**: The copy buttons on ticket pages now show descriptive tooltips on hover.
+
 ### v1.6 — April 2026
-- **Bulk Plan Date in Edit menu**: The bulk plan date action now lives inside HaloPSA's native **Edit** dropdown (no more floating button). Label adapts to the UI language (English / Dutch).
+- **Bulk Plan Date in Edit menu**: The bulk plan date action now lives inside HaloPSA's native
 - **Theme-aware modal**: The plan date modal automatically inherits the active HaloPSA theme (light or dark) so it blends with the rest of the UI.
 - **Summary & current Plandatum in modal**: The modal table now shows each ticket's summary text and current plan date value, so you can make informed decisions.
 - **Relative shift buttons (+1 / +7 / +14)**: Shift the plan date relative to the current value (or today when empty). The computed date is shown in the date picker before you apply.
 - **Per-ticket updates with verification**: Each ticket is updated individually with response verification for reliable error reporting.
 
-### v1.3 — April 2026
+### v1.5 — April 2026
 - **CustomerID added to copy format**: The formatted ticket link now includes `CFCustomerExternalReference` (external customer reference) as the CustomerID segment: `TICKETID // CustomerID // ORGANIZATION NAME // TICKET TITLE`.
 - **Ticket history updated**: The popup ticket history now shows the same 4-part format including CustomerID.
 - **Bulk Plan Date**: Initial release of the bulk plan date update feature for ticket list pages.

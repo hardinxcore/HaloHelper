@@ -7,7 +7,7 @@
 // For relative shifts, the current plandatum is read from the DOM (passed by the
 // content script) to avoid unreliable GET responses.
 
-const PLANDATUM_FIELD_ID = 239;
+// Field ID is now configurable via extension options (default: 239)
 
 /**
  * Parse a display-format date string (DD/MM/YYYY or YYYY-MM-DD) into a Date.
@@ -69,7 +69,7 @@ async function BulkUpdateTicketPlanDate(ticketIds, updateConfig) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify([{
                     id: Number(ticketId),
-                    customfields: [{ id: PLANDATUM_FIELD_ID, value: newDateStr }]
+                    customfields: [{ id: updateConfig.fieldId || 239, value: newDateStr }]
                 }])
             });
 
