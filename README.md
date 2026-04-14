@@ -12,7 +12,7 @@ A modern Chrome / Microsoft Edge extension designed to improve the workflow for 
   - CustomerID (smartly extracted via APIs and DOM reading)
 - **Omnibox Search Integration**: Type `HA` followed by a space and a ticket number in your browser's address bar to instantly jump to that ticket in HaloPSA.
 - **Ticket History**: Click on the extension icon to see a quick popup with your 10 most recently visited tickets.
-- **Bulk Plan Date Update**: On ticket list pages, select multiple tickets and use the floating bulk action to update the Plan date custom field in one go. Supports both absolute dates (`YYYY-MM-DD`) and relative shifts (for example `+7d`).
+- **Bulk Plan Date Update**: Select tickets on any ticket list page, open the native **Edit** dropdown, and choose **Set Plandate** (or **Set Plandatum** in Dutch). A modal shows each ticket's summary and current plan date. Set an absolute date or use the **+1 / +7 / +14** shift buttons to move the date relative to the current value. The modal automatically inherits the active HaloPSA theme (light or dark).
 - **Secure & Fast**: Uses native Manifest V3 `MutationObserver` and Chrome's `ClipboardItem` API for instant, seamless integration. Authentication with the Halo API runs via your own active browser session cookies.
 
 ## 🚀 Installation (Developer Mode)
@@ -36,10 +36,17 @@ Since this extension is not published on the Chrome Web Store, you can install i
 
 ## � Changelog
 
-### April 2026
+### v1.6 — April 2026
+- **Bulk Plan Date in Edit menu**: The bulk plan date action now lives inside HaloPSA's native **Edit** dropdown (no more floating button). Label adapts to the UI language (English / Dutch).
+- **Theme-aware modal**: The plan date modal automatically inherits the active HaloPSA theme (light or dark) so it blends with the rest of the UI.
+- **Summary & current Plandatum in modal**: The modal table now shows each ticket's summary text and current plan date value, so you can make informed decisions.
+- **Relative shift buttons (+1 / +7 / +14)**: Shift the plan date relative to the current value (or today when empty). The computed date is shown in the date picker before you apply.
+- **Per-ticket updates with verification**: Each ticket is updated individually with response verification for reliable error reporting.
+
+### v1.3 — April 2026
 - **CustomerID added to copy format**: The formatted ticket link now includes `CFCustomerExternalReference` (external customer reference) as the CustomerID segment: `TICKETID // CustomerID // ORGANIZATION NAME // TICKET TITLE`.
 - **Ticket history updated**: The popup ticket history now shows the same 4-part format including CustomerID.
-- **Bulk Plan Date for queues**: You can now update the Plan date custom field for multiple selected tickets on ticket list pages.
+- **Bulk Plan Date**: Initial release of the bulk plan date update feature for ticket list pages.
 
 ## �🔒 Privacy & Permissions
 

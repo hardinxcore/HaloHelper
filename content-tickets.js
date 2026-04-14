@@ -19,7 +19,6 @@
         clearTimeout(window._haloSelectionTimer);
         window._haloSelectionTimer = setTimeout(() => {
             window._haloSelectedTickets = collectSelectedTickets();
-            refreshBulkPlanDateButtonLabel();
         }, 50);
     }, true);
 
@@ -40,14 +39,9 @@
             }
         }
 
-        // --- Ticket list page: bulk plan-date button ---
+        // --- Ticket list page: inject into Edit dropdown ---
         if (isTicketListPage()) {
-            ensureBulkPlanDateButton();
-        } else {
-            const bulkBtn = document.querySelector('#ShammamBulkPlanDateButton');
-            if (bulkBtn) bulkBtn.remove();
-            const selectAllBtn = document.querySelector('#ShammamSelectAllButton');
-            if (selectAllBtn) selectAllBtn.remove();
+            injectEditMenuPlanDate();
         }
     }, 150);
 
@@ -64,6 +58,16 @@
 // ============================================================
 //  Utility
 // ============================================================
+
+/** Parse DD/MM/YYYY or YYYY-MM-DD into a Date */
+function parseDMY(str) {
+    if (!str) return null;
+    const dmy = str.trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (dmy) return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
+    const iso = str.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    return null;
+}
 
 function createDebouncedCallback(callback, waitMs) {
     let timeoutId = null;
@@ -121,184 +125,176 @@ function collectSelectedTickets() {
 }
 
 // ============================================================
-//  Bulk plan-date button
+//  Edit dropdown menu injection
 // ============================================================
 
-function ensureBulkPlanDateButton() {
-    if (document.querySelector('#ShammamBulkPlanDateButton')) return;
+function injectEditMenuPlanDate() {
+    // Find the Edit dropdown menu (only visible when tickets are selected)
+    const dropdown = document.querySelector('.ui.button.dropdown.hoveropen.bigButton');
+    if (!dropdown) return;
+    const menu = dropdown.querySelector('.menu');
+    if (!menu) return;
 
-    const button = document.createElement('button');
-    button.id = 'ShammamBulkPlanDateButton';
-    button.setAttribute('class', 'solidbutton');
-    button.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483647;padding:10px 16px;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.3);font-size:13px;cursor:pointer;';
+    // Already injected?
+    if (menu.querySelector('#ShammamPlanDateMenuItem')) return;
 
-    // Use mousedown + preventDefault so HaloPSA doesn't deselect checkboxes
-    button.addEventListener('mousedown', (e) => {
+    const isEnglish = (document.documentElement.lang || '').toLowerCase().startsWith('en');
+    const label = isEnglish ? 'Set Plandate' : 'Set Plandatum';
+
+    const item = document.createElement('div');
+    item.id = 'ShammamPlanDateMenuItem';
+    item.setAttribute('role', 'option');
+    item.setAttribute('class', 'item');
+    item.innerHTML = '<i class="fa fa-calendar"></i>' + label;
+
+    item.addEventListener('mousedown', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        // Close the dropdown menu
+        menu.classList.remove('visible');
+        dropdown.classList.remove('active', 'visible');
         onBulkPlanDateClicked();
     });
 
-    document.body.appendChild(button);
-
-    // Add Select All / Deselect All toggle button
-    const selectAllBtn = document.createElement('button');
-    selectAllBtn.id = 'ShammamSelectAllButton';
-    selectAllBtn.setAttribute('class', 'solidbutton');
-    selectAllBtn.style.cssText = 'position:fixed;right:16px;bottom:56px;z-index:2147483647;padding:6px 12px;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.3);font-size:11px;cursor:pointer;';
-    selectAllBtn.innerHTML = '<i class="fa fa-check-square" style="margin-right:4px"></i>Select all';
-    selectAllBtn._allSelected = false;
-
-    selectAllBtn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleSelectAllTickets(selectAllBtn);
-    });
-
-    document.body.appendChild(selectAllBtn);
-
-    refreshBulkPlanDateButtonLabel();
-}
-
-async function toggleSelectAllTickets(btn) {
-    const shouldSelect = !btn._allSelected;
-
-    // Click checkboxes one at a time, re-querying after each click
-    // because React re-renders the table and invalidates old DOM references.
-    let safety = 200;
-    while (safety-- > 0) {
-        const checkboxes = document.querySelectorAll('.rt-tr-group[id] input[type="checkbox"]');
-        let found = false;
-        for (const cb of checkboxes) {
-            if (cb.checked !== shouldSelect) {
-                cb.click();
-                found = true;
-                await new Promise(r => setTimeout(r, 30));
-                break; // re-query after each click
-            }
-        }
-        if (!found) break;
-    }
-
-    btn._allSelected = shouldSelect;
-    btn.innerHTML = shouldSelect
-        ? '<i class="fa fa-square-o" style="margin-right:4px"></i>Deselect all'
-        : '<i class="fa fa-check-square" style="margin-right:4px"></i>Select all';
-
-    // Update selection tracking
-    window._haloSelectedTickets = collectSelectedTickets();
-    refreshBulkPlanDateButtonLabel();
-}
-
-function refreshBulkPlanDateButtonLabel() {
-    const button = document.querySelector('#ShammamBulkPlanDateButton');
-    if (!button) return;
-    // Use live snapshot if checkboxes are still checked, otherwise fall back to stored snapshot
-    const liveSelection = collectSelectedTickets();
-    const count = liveSelection.length > 0 ? liveSelection.length : window._haloSelectedTickets.length;
-    button.innerHTML = count > 0
-        ? '<i class="fa fa-calendar" style="margin-right:6px"></i>Bulk plan date (' + count + ')'
-        : '<i class="fa fa-calendar" style="margin-right:6px"></i>Bulk plan date';
+    menu.appendChild(item);
 }
 
 // ============================================================
-//  Modal UI  (dark theme matching HaloPSA)
+//  Modal UI  (inherits site theme via computed styles)
 // ============================================================
+
+function getSiteThemeColors() {
+    const row = document.querySelector('.rt-tr-group');
+    const header = document.querySelector('.rt-thead');
+    const menuItem = document.querySelector('.ui.button.dropdown .menu .item');
+    const glowBtn = document.querySelector('.glow-btn');
+
+    const rowS = row ? getComputedStyle(row) : null;
+    const headerS = header ? getComputedStyle(header) : null;
+    const menuS = menuItem ? getComputedStyle(menuItem) : null;
+    const glowS = glowBtn ? getComputedStyle(glowBtn) : null;
+    const bodyS = getComputedStyle(document.body);
+
+    return {
+        bg: rowS ? rowS.backgroundColor : '#fff',
+        text: menuS ? menuS.color : bodyS.color,
+        muted: 'rgba(0,0,0,0.5)',
+        headerBg: headerS ? headerS.backgroundColor : '#fafafa',
+        border: 'rgba(34,36,38,0.15)',
+        accent: glowS ? glowS.backgroundColor : '#00b5e2',
+        font: menuS ? menuS.fontFamily : 'inherit',
+    };
+}
 
 function showBulkPlanDateModal(tickets) {
-    // Remove any existing modal
     const existing = document.querySelector('#ShammamBulkModal');
     if (existing) existing.remove();
 
-    // Default date: today + 7 days
+    const c = getSiteThemeColors();
+    const isEnglish = (document.documentElement.lang || '').toLowerCase().startsWith('en');
     const defaultDate = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
     const overlay = document.createElement('div');
     overlay.id = 'ShammamBulkModal';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif;';
+    overlay.style.cssText = `position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-family:${c.font};`;
 
     const ticketRows = tickets.map(t =>
-        `<tr style="border-bottom:1px solid #2d2d4a;">
-            <td style="padding:6px 10px;color:#4dd0e1;font-weight:600;">${escapeHtml(t.id)}</td>
-            <td style="padding:6px 10px;color:#ccc;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(t.summary || '—')}</td>
-            <td style="padding:6px 10px;color:#aaa;">${escapeHtml(t.plandatum || '—')}</td>
+        `<tr style="border-bottom:1px solid ${c.border};">
+            <td style="padding:6px 10px;color:${c.accent};font-weight:600;">${escapeHtml(t.id)}</td>
+            <td style="padding:6px 10px;color:${c.text};max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(t.summary || '—')}</td>
+            <td style="padding:6px 10px;color:${c.muted};">${escapeHtml(t.plandatum || '—')}</td>
         </tr>`
     ).join('');
 
     overlay.innerHTML = `
-        <div style="background:#1a1a2e;border:1px solid #2d2d4a;border-radius:10px;padding:24px;width:620px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
-            <h3 style="margin:0 0 16px;color:#e0e0e0;font-size:16px;">
-                <i class="fa fa-calendar" style="margin-right:8px;color:#4dd0e1;"></i>
-                Bulk update Plandatum
+        <div style="background:${c.bg};border:1px solid ${c.border};border-radius:8px;padding:24px;width:620px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(0,0,0,0.15);">
+            <h3 style="margin:0 0 16px;color:${c.text};font-size:16px;">
+                <i class="fa fa-calendar" style="margin-right:8px;color:${c.accent};"></i>
+                ${isEnglish ? 'Bulk update Plandate' : 'Bulk update Plandatum'}
             </h3>
 
             <div style="margin-bottom:14px;">
-                <label style="color:#aaa;font-size:13px;display:block;margin-bottom:6px;">New plan date</label>
+                <label style="color:${c.muted};font-size:13px;display:block;margin-bottom:6px;">${isEnglish ? 'New plan date' : 'Nieuwe plandatum'}</label>
                 <input type="date" id="ShammamBulkDateInput" value="${defaultDate}"
-                    style="background:#16213e;border:1px solid #2d2d4a;color:#e0e0e0;padding:8px 12px;border-radius:6px;font-size:14px;width:100%;box-sizing:border-box;">
+                    style="background:${c.bg};border:1px solid ${c.border};color:${c.text};padding:8px 12px;border-radius:4px;font-size:14px;width:100%;box-sizing:border-box;">
             </div>
 
             <div style="margin-bottom:14px;">
-                <label style="color:#aaa;font-size:13px;display:block;margin-bottom:6px;">Or shift relative to current date</label>
+                <label style="color:${c.muted};font-size:13px;display:block;margin-bottom:6px;">${isEnglish ? 'Or shift relative to current date' : 'Of verschuif relatief aan huidige datum'}</label>
                 <div style="display:flex;gap:8px;">
-                    <button class="shammam-shift-btn" data-days="7" style="background:#16213e;border:1px solid #2d2d4a;color:#4dd0e1;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;">+7 days</button>
-                    <button class="shammam-shift-btn" data-days="14" style="background:#16213e;border:1px solid #2d2d4a;color:#4dd0e1;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;">+14 days</button>
-                    <button class="shammam-shift-btn" data-days="1" style="background:#16213e;border:1px solid #2d2d4a;color:#4dd0e1;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;">+1 day</button>
+                    <button class="shammam-shift-btn" data-days="1" style="background:${c.bg};border:1px solid ${c.border};color:${c.accent};padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;">+1</button>
+                    <button class="shammam-shift-btn" data-days="7" style="background:${c.bg};border:1px solid ${c.border};color:${c.accent};padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;">+7</button>
+                    <button class="shammam-shift-btn" data-days="14" style="background:${c.bg};border:1px solid ${c.border};color:${c.accent};padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;">+14</button>
                 </div>
             </div>
 
-            <div style="flex:1;overflow-y:auto;margin-bottom:14px;border:1px solid #2d2d4a;border-radius:6px;">
+            <div style="flex:1;overflow-y:auto;margin-bottom:14px;border:1px solid ${c.border};border-radius:4px;">
                 <table style="width:100%;border-collapse:collapse;font-size:13px;">
                     <thead>
-                        <tr style="background:#16213e;">
-                            <th style="padding:8px 10px;text-align:left;color:#4dd0e1;font-weight:600;">Ticket</th>
-                            <th style="padding:8px 10px;text-align:left;color:#4dd0e1;font-weight:600;">Summary</th>
-                            <th style="padding:8px 10px;text-align:left;color:#4dd0e1;font-weight:600;">Plandatum</th>
+                        <tr style="background:${c.headerBg};">
+                            <th style="padding:8px 10px;text-align:left;color:${c.text};font-weight:600;">Ticket</th>
+                            <th style="padding:8px 10px;text-align:left;color:${c.text};font-weight:600;">Summary</th>
+                            <th style="padding:8px 10px;text-align:left;color:${c.text};font-weight:600;">Plandatum</th>
                         </tr>
                     </thead>
                     <tbody>${ticketRows}</tbody>
                 </table>
             </div>
 
-            <div id="ShammamBulkStatus" style="display:none;margin-bottom:10px;padding:8px 10px;border-radius:6px;font-size:13px;"></div>
+            <div id="ShammamBulkStatus" style="display:none;margin-bottom:10px;padding:8px 10px;border-radius:4px;font-size:13px;"></div>
 
             <div style="display:flex;justify-content:flex-end;gap:10px;">
-                <button id="ShammamBulkCancel" style="background:transparent;border:1px solid #2d2d4a;color:#aaa;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;">Cancel</button>
-                <button id="ShammamBulkApply" style="background:#4dd0e1;border:none;color:#1a1a2e;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">Apply</button>
+                <button id="ShammamBulkCancel" style="background:transparent;border:1px solid ${c.border};color:${c.muted};padding:8px 20px;border-radius:4px;cursor:pointer;font-size:13px;">Cancel</button>
+                <button id="ShammamBulkApply" style="background:${c.accent};border:none;color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;">Apply</button>
             </div>
         </div>
     `;
 
     document.body.appendChild(overlay);
 
-    // State: absolute date mode by default
     let updateMode = { absoluteDate: defaultDate, relativeDays: null };
 
-    // Wire date input
     const dateInput = overlay.querySelector('#ShammamBulkDateInput');
     dateInput.addEventListener('change', () => {
         updateMode = { absoluteDate: dateInput.value, relativeDays: null };
-        // Deselect shift buttons
-        overlay.querySelectorAll('.shammam-shift-btn').forEach(b => b.style.background = '#16213e');
-    });
-
-    // Wire shift buttons
-    overlay.querySelectorAll('.shammam-shift-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const days = parseInt(btn.getAttribute('data-days'), 10);
-            updateMode = { absoluteDate: null, relativeDays: days };
-            dateInput.value = '';
-            // Highlight active
-            overlay.querySelectorAll('.shammam-shift-btn').forEach(b => b.style.background = '#16213e');
-            btn.style.background = '#2d2d4a';
+        overlay.querySelectorAll('.shammam-shift-btn').forEach(b => {
+            b.style.background = c.bg; b.style.fontWeight = 'normal';
         });
     });
 
-    // Wire cancel
+    overlay.querySelectorAll('.shammam-shift-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const days = parseInt(btn.getAttribute('data-days'), 10);
+
+            // Compute shifted date: use the current date input value, or
+            // the earliest plandatum from the selected tickets, or today
+            let base = dateInput.value ? new Date(dateInput.value) : null;
+            if (!base || isNaN(base.getTime())) {
+                // Try earliest plandatum from tickets
+                for (const t of tickets) {
+                    if (!t.plandatum) continue;
+                    const parsed = parseDMY(t.plandatum);
+                    if (parsed && (!base || parsed < base)) base = parsed;
+                }
+            }
+            if (!base || isNaN(base.getTime())) base = new Date();
+
+            base.setDate(base.getDate() + days);
+            const iso = base.toISOString().slice(0, 10);
+            dateInput.value = iso;
+            updateMode = { absoluteDate: iso, relativeDays: null };
+
+            overlay.querySelectorAll('.shammam-shift-btn').forEach(b => {
+                b.style.background = c.bg; b.style.fontWeight = 'normal';
+            });
+            btn.style.background = c.headerBg;
+            btn.style.fontWeight = '600';
+        });
+    });
+
     overlay.querySelector('#ShammamBulkCancel').addEventListener('click', () => overlay.remove());
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 
-    // Wire apply
     overlay.querySelector('#ShammamBulkApply').addEventListener('click', () => {
         executeBulkUpdate(tickets, updateMode, overlay);
     });
@@ -309,30 +305,31 @@ async function executeBulkUpdate(tickets, updateMode, overlay) {
     const cancelBtn = overlay.querySelector('#ShammamBulkCancel');
     const statusDiv = overlay.querySelector('#ShammamBulkStatus');
 
-    // Validate
     if (!updateMode.absoluteDate && updateMode.relativeDays == null) {
         statusDiv.style.display = 'block';
-        statusDiv.style.background = '#4a1a1a';
-        statusDiv.style.color = '#ff6b6b';
+        statusDiv.style.background = '#fff0f0';
+        statusDiv.style.color = '#db2828';
         statusDiv.textContent = 'Please select a date or a relative shift.';
         return;
     }
 
-    // Loading state
     applyBtn.disabled = true;
     applyBtn.textContent = 'Updating...';
     cancelBtn.disabled = true;
     statusDiv.style.display = 'block';
-    statusDiv.style.background = '#1a2a3e';
-    statusDiv.style.color = '#4dd0e1';
+    statusDiv.style.background = '#f0f8ff';
+    statusDiv.style.color = '#00b5e2';
     statusDiv.textContent = `Updating ${tickets.length} ticket(s)...`;
 
     try {
-        const ticketIds = tickets.map(t => t.id);
+        // Send tickets with their current plandatum values from the DOM
+        // so the background script can compute relative shifts without GET
+        const ticketData = tickets.map(t => ({ id: t.id, plandatum: t.plandatum || '' }));
         const response = await new Promise((resolve, reject) => {
             chrome.runtime.sendMessage({
                 action: 'bulkUpdatePlanDate',
-                ticketIds: ticketIds,
+                ticketIds: tickets.map(t => t.id),
+                ticketData: ticketData,
                 absoluteDate: updateMode.absoluteDate,
                 relativeDays: updateMode.relativeDays
             }, (result) => {
@@ -348,17 +345,16 @@ async function executeBulkUpdate(tickets, updateMode, overlay) {
             });
         });
 
-        // Show result
         if (response.failureCount === 0) {
-            statusDiv.style.background = '#1a3a2a';
-            statusDiv.style.color = '#4dd0e1';
+            statusDiv.style.background = '#f0fff0';
+            statusDiv.style.color = '#21ba45';
             statusDiv.textContent = `Successfully updated ${response.successCount} ticket(s).`;
         } else {
             const failedDetails = response.results.filter(r => !r.success).map(r => `${r.ticketId}: ${r.error || 'Unknown error'}`).join('\n');
-            statusDiv.style.background = '#4a1a1a';
-            statusDiv.style.color = '#ff6b6b';
+            statusDiv.style.background = '#fff0f0';
+            statusDiv.style.color = '#db2828';
             statusDiv.style.whiteSpace = 'pre-wrap';
-            statusDiv.textContent = `Updated ${response.successCount}/${ticketIds.length}.\n${failedDetails}`;
+            statusDiv.textContent = `Updated ${response.successCount}/${tickets.length}.\n${failedDetails}`;
         }
 
         applyBtn.textContent = 'Done';
@@ -366,7 +362,6 @@ async function executeBulkUpdate(tickets, updateMode, overlay) {
         cancelBtn.disabled = false;
         cancelBtn.textContent = 'Close';
 
-        // Auto-close after 2s on full success and refresh the page
         if (response.failureCount === 0) {
             setTimeout(() => {
                 overlay.remove();
@@ -374,8 +369,8 @@ async function executeBulkUpdate(tickets, updateMode, overlay) {
             }, 1500);
         }
     } catch (error) {
-        statusDiv.style.background = '#4a1a1a';
-        statusDiv.style.color = '#ff6b6b';
+        statusDiv.style.background = '#fff0f0';
+        statusDiv.style.color = '#db2828';
         statusDiv.textContent = `Error: ${error.message}`;
         applyBtn.textContent = 'Retry';
         applyBtn.disabled = false;

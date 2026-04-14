@@ -3,12 +3,39 @@
 //
 // Field ID 239 is used directly — the GET /api/tickets/{id} endpoint does not
 // reliably return customfields for all ticket types, but POST always accepts it.
+//
+// For relative shifts, the current plandatum is read from the DOM (passed by the
+// content script) to avoid unreliable GET responses.
 
 const PLANDATUM_FIELD_ID = 239;
+
+/**
+ * Parse a display-format date string (DD/MM/YYYY or YYYY-MM-DD) into a Date.
+ */
+function parsePlandatumDisplay(str) {
+    if (!str) return null;
+    str = str.trim();
+    // Try DD/MM/YYYY (HaloPSA display format)
+    const dmy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (dmy) {
+        const d = new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
+        if (!isNaN(d.getTime())) return d;
+    }
+    // Try ISO YYYY-MM-DD
+    const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) {
+        const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+        if (!isNaN(d.getTime())) return d;
+    }
+    // Last resort: native parser
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+}
 
 async function BulkUpdateTicketPlanDate(ticketIds, updateConfig) {
     const domain = await HaloAuth.getDomain();
     const results = [];
+    const plandatumByTicket = updateConfig.plandatumByTicket || {};
 
     console.log('[HaloHelper] BulkUpdateTicketPlanDate called', { ticketIds, updateConfig, domain });
 
@@ -17,31 +44,14 @@ async function BulkUpdateTicketPlanDate(ticketIds, updateConfig) {
             let newDateStr;
 
             if (typeof updateConfig.relativeDays === 'number') {
-                // Relative shift: GET the ticket to read the current Plandatum value
-                const getResponse = await HaloAuth.makeAuthenticatedRequest(
-                    `https://${domain}/api/tickets/${ticketId}`,
-                    { method: 'GET', redirect: 'follow' }
-                );
-                const ticket = await getResponse.json();
+                // Use the plandatum value from the DOM (passed by content script)
+                const currentDisplay = plandatumByTicket[ticketId] || '';
+                const baseDate = parsePlandatumDisplay(currentDisplay);
 
-                let currentValue = null;
-                if (ticket && Array.isArray(ticket.customfields)) {
-                    for (const field of ticket.customfields) {
-                        if (field && field.id === PLANDATUM_FIELD_ID) {
-                            currentValue = field.value;
-                            break;
-                        }
-                    }
+                if (!baseDate) {
+                    throw new Error('Current Plandatum is empty or invalid — cannot apply relative shift');
                 }
 
-                if (!currentValue) {
-                    throw new Error('Current Plandatum is empty — cannot apply relative shift');
-                }
-
-                const baseDate = new Date(currentValue);
-                if (isNaN(baseDate.getTime())) {
-                    throw new Error('Current Plandatum value is not a valid date');
-                }
                 const shifted = new Date(baseDate);
                 shifted.setDate(shifted.getDate() + updateConfig.relativeDays);
                 newDateStr = shifted.toISOString().slice(0, 10) + 'T10:00:00';

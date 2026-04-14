@@ -358,9 +358,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return;
         }
 
+        // Build plandatum lookup from DOM values sent by content script
+        const plandatumByTicket = {};
+        if (Array.isArray(request.ticketData)) {
+            for (const t of request.ticketData) {
+                if (t && t.id && t.plandatum) {
+                    const cleanId = String(t.id).replace(/[^0-9]/g, '');
+                    plandatumByTicket[cleanId] = t.plandatum;
+                }
+            }
+        }
+
         BulkUpdateTicketPlanDate(sanitizedTicketIds, {
             relativeDays,
-            absoluteDate: absoluteDate || null
+            absoluteDate: absoluteDate || null,
+            plandatumByTicket
         })
             .then(result => sendResponse(result))
             .catch(error => {
