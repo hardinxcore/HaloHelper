@@ -13,6 +13,7 @@ A modern Chrome / Microsoft Edge extension designed to improve the workflow for 
 - **Omnibox Search Integration**: Type `HA` followed by a space and a ticket number in your browser's address bar to instantly jump to that ticket in HaloPSA.
 - **Ticket History**: Click on the extension icon to see a quick popup with your 10 most recently visited tickets.
 - **Bulk Plan Date Update**: Select tickets on any ticket list page, open the native **Edit** dropdown, and choose **Set Plandate** (or **Set Plandatum** in Dutch). A modal shows each ticket's summary and current plan date. Set an absolute date or use the **+1 / +7 / +14** shift buttons to move the date relative to the current value. The modal automatically inherits the active HaloPSA theme (light or dark).
+- **Awaiting Review group-select**: On the *Awaiting Review* screen, clicking any row (or its checkbox) automatically selects every other action that belongs to the same ticket. Right-click once, choose **Review** or **Do not bill**, and the action is applied to every event of that ticket at the same time. Unchecking a row in the group clears the whole group again. Can be toggled off in extension options.
 - **Secure & Fast**: Uses native Manifest V3 `MutationObserver` and Chrome's `ClipboardItem` API for instant, seamless integration. Authentication with the Halo API runs via your own active browser session cookies.
 
 ## 🚀 Installation (Developer Mode)
@@ -35,6 +36,9 @@ Since this extension is not published on the Chrome Web Store, you can install i
    - The maximum amount of recent tickets saved in your history (default: 10).
 
 ## � Changelog
+
+### v1.8 — May 2026
+- **Awaiting Review group-select**: New module on the *Awaiting Review* invoice screen. Clicking a row (or its checkbox) automatically selects every other row that shares the same ticket ID, so a single right-click → **Review** / **Do not bill** applies to every event of that ticket at once. Toggle the feature on/off in extension options.
 
 ### v1.7 — April 2026
 - **Date format fix**: All dates displayed by HaloPSA with slashes (e.g. `14/04/2026`) are automatically replaced with dashes (`14-04-2026`) for improved readability. This can be toggled off in extension options.
