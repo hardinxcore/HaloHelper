@@ -19,7 +19,8 @@ async function initializeSettings() {
             haloPlanDateEnabled: localStorage.haloPlanDateEnabled === undefined ? true : localStorage.haloPlanDateEnabled,
             haloPlanDateFieldId: localStorage.haloPlanDateFieldId === undefined ? 239 : localStorage.haloPlanDateFieldId,
             haloPlanDateFieldName: localStorage.haloPlanDateFieldName === undefined ? 'Plandatum' : localStorage.haloPlanDateFieldName,
-            haloPlanDateDashes: localStorage.haloPlanDateDashes === undefined ? true : localStorage.haloPlanDateDashes
+            haloPlanDateDashes: localStorage.haloPlanDateDashes === undefined ? true : localStorage.haloPlanDateDashes,
+            haloAwaitingReviewEnabled: localStorage.haloAwaitingReviewEnabled === undefined ? true : localStorage.haloAwaitingReviewEnabled
         };
         
         // Only update values that are undefined
