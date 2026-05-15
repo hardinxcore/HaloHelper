@@ -1,1 +1,23 @@
+# Editor / IDE
 .vscode
+.idea/
+*.swp
+
+# Claude Code local config
+.claude/
+
+# Environment / secrets
+.env
+.env.*
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Build / packaging output (Chrome extension zips, source maps, etc.)
+*.zip
+*.crx
+*.pem
+
+# Logs
+*.log
