@@ -45,6 +45,18 @@
         // --- Ticket list page: inject into Edit dropdown (if Plandate module enabled) ---
         if (isTicketListPage() && localStorage.haloPlanDateEnabled !== false) {
             injectEditMenuPlanDate();
+            // Add keyboard shortcut for bulk plan date update (Alt+P)
+            if (!window._haloPlanDateShortcutAdded) {
+                window._haloPlanDateShortcutAdded = true;
+                console.log('[HaloHelper] Adding keyboard shortcut for Plandate');
+                document.addEventListener('keydown', (e) => {
+                    if (e.altKey && e.code === 'KeyP') {
+                        console.log('[HaloHelper] Shortcut Alt+P triggered');
+                        e.preventDefault();
+                        onBulkPlanDateClicked();
+                    }
+                });
+            }
         }
 
         // --- Replace date slashes with dashes across the entire page ---
