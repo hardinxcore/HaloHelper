@@ -22,6 +22,178 @@
         }, 50);
     }, true);
 
+    // ============================================================
+    //  Awaiting Review: group-select rows by ticket ID
+    // ============================================================
+    // Design notes:
+    // - Listeners sit at BUBBLE phase. React/HaloPSA already commits the
+    //   user's own click before our extension logic runs, which avoids
+    //   double-toggling the source row.
+    // - We filter on `event.isTrusted` so the synthetic clicks our sync
+    //   dispatches can't re-enter our own handlers.
+    // - A 50 ms setTimeout defers the sync to the next macrotask, giving
+    //   HaloPSA's React state and URL (selid/selparentid) time to settle
+    //   before we start extending the selection.
+    // - The sync first tries `cb.click()` (cheap, works for normal React
+    //   onChange checkboxes). If it stalls for even one pass we switch to
+    //   dispatching a Ctrl+click on the row body — that's the gesture
+    //   HaloPSA's row click handler treats as "add to selection".
+    let _haloAwaitingReviewSyncing = false;
+
+    function nextFrame() {
+        return new Promise(resolve => requestAnimationFrame(resolve));
+    }
+
+    // Find every row of `ticketId` whose checkbox doesn't match `desired`.
+    function findOutOfSyncRows(ticketId, idColIndex, desired) {
+        const out = [];
+        const rows = document.querySelectorAll('.rt-tr-group');
+        for (const r of rows) {
+            if (getRowTicketId(r, idColIndex) !== ticketId) continue;
+            const cb = r.querySelector('input[type="checkbox"]');
+            if (!cb) continue;
+            if (cb.checked !== desired) out.push({ row: r, cb });
+        }
+        return out;
+    }
+
+    // Dispatch a synthetic Ctrl+click on the row body. HaloPSA reads this
+    // as "extend the current selection by this row" — the same gesture as
+    // a user holding Ctrl. We aim at a cell with no link/button inside so
+    // we don't trigger a navigation as a side effect.
+    function dispatchCtrlRowClick(row) {
+        const cells = row.querySelectorAll('.rt-td');
+        let target = null;
+        for (const c of cells) {
+            if (!c.querySelector('a, button, select, input, label')) {
+                target = c;
+                break;
+            }
+        }
+        if (!target) target = row;
+        const opts = { bubbles: true, cancelable: true, ctrlKey: true, button: 0 };
+        target.dispatchEvent(new MouseEvent('mousedown', opts));
+        target.dispatchEvent(new MouseEvent('mouseup', opts));
+        target.dispatchEvent(new MouseEvent('click', opts));
+    }
+
+    async function syncRowGroupByTicketId(ticketId, idColIndex, desired) {
+        if (_haloAwaitingReviewSyncing) return;
+        if (!ticketId || idColIndex < 0) return;
+
+        _haloAwaitingReviewSyncing = true;
+        try {
+            const MAX_PASSES = 60;
+            let prevCount = -1;
+            let stuckPasses = 0;
+            let strategy = 'cb';  // 'cb' = checkbox click, 'row' = Ctrl+click on row body
+
+            for (let pass = 0; pass < MAX_PASSES; pass++) {
+                const out = findOutOfSyncRows(ticketId, idColIndex, desired);
+                if (out.length === 0) break;
+
+                // Stuck detection: if the unsynced count didn't shrink this
+                // pass, the strategy isn't working. Switch to row click
+                // immediately, and after 3 total stuck passes give up.
+                if (prevCount !== -1 && out.length >= prevCount) {
+                    stuckPasses++;
+                    if (strategy === 'cb') {
+                        strategy = 'row';
+                        stuckPasses = 0;
+                    } else if (stuckPasses >= 3) {
+                        showAwaitingReviewNotice(
+                            `Kon ${out.length} rij(en) van ticket ${ticketId} niet selecteren. Klik nogmaals om verder te gaan.`
+                        );
+                        break;
+                    }
+                } else {
+                    stuckPasses = 0;
+                }
+                prevCount = out.length;
+
+                const { row, cb } = out[0];
+                if (strategy === 'cb') {
+                    cb.click();
+                } else {
+                    dispatchCtrlRowClick(row);
+                }
+
+                // Yield a full frame so HaloPSA's React can run its handler,
+                // commit state, and (optionally) re-render before we look
+                // at the live DOM again.
+                await nextFrame();
+            }
+        } finally {
+            _haloAwaitingReviewSyncing = false;
+        }
+    }
+
+    // Schedule a deferred sync. Captures ticket/column identifiers NOW
+    // (before any re-render moves things around) and runs the async sync
+    // after a small delay so HaloPSA finishes processing the user's click.
+    function scheduleSync(row, desired) {
+        const idColIndex = findIdColumnIndex();
+        const ticketId = getRowTicketId(row, idColIndex);
+        if (!ticketId) return;
+        setTimeout(() => syncRowGroupByTicketId(ticketId, idColIndex, desired), 50);
+    }
+
+    // User clicked a checkbox directly. The change event is what tells us.
+    // isTrusted=true filters out the synthetic change events our own
+    // cb.click() calls would otherwise re-fire.
+    document.addEventListener('change', (event) => {
+        if (!event.isTrusted) return;
+        if (window._haloAwaitingReviewEnabled === false) return;
+        if (!isAwaitingReviewPage()) return;
+        if (_haloAwaitingReviewSyncing) return;
+
+        const target = event.target;
+        if (!target || !target.matches || !target.matches('input[type="checkbox"]')) return;
+
+        const row = target.closest('.rt-tr-group');
+        if (!row) return;
+
+        scheduleSync(row, target.checked);
+    }, true);
+
+    // User clicked anywhere on a row body. Bubble phase so HaloPSA's own
+    // row click handler runs first; we then extend the selection.
+    document.addEventListener('click', (event) => {
+        if (!event.isTrusted) return;
+        if (window._haloAwaitingReviewEnabled === false) return;
+        if (!isAwaitingReviewPage()) return;
+        if (_haloAwaitingReviewSyncing) return;
+
+        const target = event.target;
+        if (!target || !target.closest) return;
+
+        // Checkbox direct clicks: the change listener above handles them.
+        if (target.matches && target.matches('input[type="checkbox"]')) return;
+
+        // Don't hijack clicks on interactive controls.
+        if (target.closest('a, button, select, textarea, input, label')) return;
+        if (target.closest('.dropdown, .menu, [role="menu"], [role="option"]')) return;
+
+        const row = target.closest('.rt-tr-group');
+        if (!row) return;
+
+        scheduleSync(row, true);
+    }, false);  // bubble
+
+    // Small unobtrusive notice for sync failures. Fades after a few seconds.
+    function showAwaitingReviewNotice(message) {
+        let notice = document.querySelector('#ShammamAwaitingReviewNotice');
+        if (!notice) {
+            notice = document.createElement('div');
+            notice.id = 'ShammamAwaitingReviewNotice';
+            notice.style.cssText = 'position:fixed;right:16px;bottom:64px;z-index:2147483647;background:#1f2937;color:#fff;padding:10px 14px;border-radius:6px;font-size:13px;max-width:360px;box-shadow:0 2px 10px rgba(0,0,0,0.3);';
+            document.body.appendChild(notice);
+        }
+        notice.textContent = message;
+        clearTimeout(notice._hideTimeout);
+        notice._hideTimeout = setTimeout(() => { notice.remove(); }, 5000);
+    }
+
     let lastCheckedHref = '';
 
     const schedulePageCheck = createDebouncedCallback(async () => {
@@ -34,6 +206,9 @@
         // Cache configured Plandate column name for collectSelectedTickets()
         window._haloPlanDateFieldName = localStorage.haloPlanDateFieldName || 'Plandatum';
 
+        // Cache awaiting-review-module toggle (default: enabled)
+        window._haloAwaitingReviewEnabled = localStorage.haloAwaitingReviewEnabled !== false;
+
         // --- Single ticket page: copy buttons ---
         if (localStorage.haloAddFormattedCopyButton !== false) {
             const shareITag = document.querySelector('i.fa.fa-share-alt');
@@ -45,6 +220,18 @@
         // --- Ticket list page: inject into Edit dropdown (if Plandate module enabled) ---
         if (isTicketListPage() && localStorage.haloPlanDateEnabled !== false) {
             injectEditMenuPlanDate();
+            // Add keyboard shortcut for bulk plan date update (Alt+P)
+            if (!window._haloPlanDateShortcutAdded) {
+                window._haloPlanDateShortcutAdded = true;
+                console.log('[HaloHelper] Adding keyboard shortcut for Plandate');
+                document.addEventListener('keydown', (e) => {
+                    if (e.altKey && e.code === 'KeyP') {
+                        console.log('[HaloHelper] Shortcut Alt+P triggered');
+                        e.preventDefault();
+                        onBulkPlanDateClicked();
+                    }
+                });
+            }
         }
 
         // --- Replace date slashes with dashes across the entire page ---
@@ -96,6 +283,40 @@ function isTicketListPage() {
     const rows = document.querySelectorAll('.rt-tr-group[id]');
     if (rows.length >= 1) return true;
     return false;
+}
+
+// Awaiting Review page: e.g. /invoices?mainview=invoicereview
+function isAwaitingReviewPage() {
+    const url = (window.location.href || '').toLowerCase();
+    if (url.includes('mainview=invoicereview')) return true;
+    if (url.includes('/invoicereview')) return true;
+    return false;
+}
+
+// Find the index of the "ID" column in the visible React-table header.
+// Matches the exact label "ID" (case-insensitive) so we don't accidentally
+// pick up "Action ID", "Customer ID", etc.
+function findIdColumnIndex() {
+    const headers = document.querySelectorAll('.rt-thead .rt-th');
+    for (let i = 0; i < headers.length; i++) {
+        if (headers[i].textContent.trim().toLowerCase() === 'id') return i;
+    }
+    return -1;
+}
+
+// Extract the numeric ticket ID from a row's "ID" cell.
+// The cell also contains the row's checkbox, but the checkbox has no text,
+// so textContent normally gives us just the digits. We pull the first
+// sequence of 4+ digits to stay tolerant of unexpected extras (whitespace,
+// icons, hidden spans, etc.) — strictly requiring "all digits, nothing
+// else" used to silently drop rows from the group.
+function getRowTicketId(row, idColIndex) {
+    if (!row || idColIndex < 0) return null;
+    const cells = row.querySelectorAll('.rt-td');
+    if (idColIndex >= cells.length) return null;
+    const text = cells[idColIndex].textContent;
+    const match = text && text.match(/\d{4,}/);
+    return match ? match[0] : null;
 }
 
 // ============================================================
@@ -406,7 +627,12 @@ async function executeBulkUpdate(tickets, updateMode, overlay) {
         if (response.failureCount === 0) {
             setTimeout(() => {
                 overlay.remove();
-                window.location.reload();
+                const refreshBtn = document.querySelector('button.solidbutton.fabtn[title="Refresh"]');
+                if (refreshBtn) {
+                    refreshBtn.click();
+                } else {
+                    window.location.reload();
+                }
             }, 1500);
         }
     } catch (error) {
