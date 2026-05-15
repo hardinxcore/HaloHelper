@@ -406,7 +406,12 @@ async function executeBulkUpdate(tickets, updateMode, overlay) {
         if (response.failureCount === 0) {
             setTimeout(() => {
                 overlay.remove();
-                window.location.reload();
+                const refreshBtn = document.querySelector('button.solidbutton.fabtn[title="Refresh"]');
+                if (refreshBtn) {
+                    refreshBtn.click();
+                } else {
+                    window.location.reload();
+                }
             }, 1500);
         }
     } catch (error) {
