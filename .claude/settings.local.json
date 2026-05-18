@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(where magick:*)",
-      "Bash(python:*)"
-    ]
-  }
-}
