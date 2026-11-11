@@ -37,6 +37,12 @@ Since this extension is not published on the Chrome Web Store, you can install i
 
 ## � Changelog
 
+### v1.8.1 — 2026-11-11
+- **Quick Copy buttons work again after the November 2026 HaloPSA update**: Halo now renders its icons as Font Awesome 6 SVGs, so the buttons were no longer added next to the Share button.
+- **No more Share menu on hover**: The copy buttons are placed outside Halo's new Share wrapper, so hovering or clicking them no longer opens the Share menu.
+- **Works with multiple Halo tabs**: The buttons now appear in every in-app Halo tab, and each button copies the ticket number of its own tab.
+- **New ticket-number icon**: The ticket-number button uses a ticket icon, because the hashtag icon is no longer part of Halo's icon set.
+
 ### v1.8 — May 2026
 - **Awaiting Review group-select**: New module on the *Awaiting Review* invoice screen. Clicking a row (or its checkbox) automatically selects every other row that shares the same ticket ID, so a single right-click → **Review** / **Do not bill** applies to every event of that ticket at once. Toggle the feature on/off in extension options.
 

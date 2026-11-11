@@ -211,9 +211,20 @@
 
         // --- Single ticket page: copy buttons ---
         if (localStorage.haloAddFormattedCopyButton !== false) {
-            const shareITag = document.querySelector('i.fa.fa-share-alt');
-            if (shareITag && !document.querySelector('#ShammamCopyLinkButton')) {
-                AddShammamCopyButton(shareITag, localStorage);
+            // Halo renders Font Awesome 6 as inline SVG (<svg class="svg-inline--fa fa-share-nodes">)
+            // since the Nov 2026 update; older versions used <i class="fa fa-share-alt">.
+            // Halo keeps inactive in-app tabs in the DOM (hidden), so there can be several
+            // Share buttons: only add our buttons next to the visible one(s), and check
+            // per button bar whether they are already there.
+            const ticketIdInUrl = new URLSearchParams(window.location.search).get('id');
+            if (ticketIdInUrl) {
+                document.querySelectorAll('button .fa-share-nodes, button .fa-share-alt').forEach(shareITag => {
+                    const shareButton = shareITag.closest('button');
+                    if (!shareButton || shareButton.getClientRects().length === 0) return; // hidden tab
+                    const buttonBar = shareButton.closest('.buttons-container') || shareButton.parentElement;
+                    if (buttonBar.querySelector('[data-shammam="link"]')) return;
+                    AddShammamCopyButton(shareITag, localStorage);
+                });
             }
         }
 
@@ -683,49 +694,50 @@ function showBulkPlanDateNotice(message) {
     notice._hideTimeout = setTimeout(() => { notice.remove(); }, 4500);
 }
 
+function createShammamButton(kind, iconClass, title) {
+    let icon = document.createElement('i');
+    icon.setAttribute('class', 'fa ' + iconClass);
+    let button = document.createElement('button');
+    button.dataset.shammam = kind;
+    button.setAttribute('class', 'solidbutton fabtn notext');
+    button.setAttribute('title', title);
+    button.appendChild(icon);
+    return button;
+}
+
+// Swap the icon of one of our buttons. Halo's Font Awesome replaces the <i> with an
+// <svg>, so look the icon up inside the button each time instead of keeping a reference.
+function setShammamIcon(button, iconClass, title) {
+    let icon = button && button.querySelector('svg, i');
+    if (!icon) return;
+    icon.setAttribute('class', 'fa ' + iconClass);
+    if (title !== undefined) icon.setAttribute('title', title);
+}
+
 async function AddShammamCopyButton(shareITag, localStorage) {
 
-    // Create new elements for the full info copy button
-    let linkITag = document.createElement('i');
-    linkITag.id = 'ShammamCopyLinkI';
-    linkITag.setAttribute('class', 'fa fa-link');
-    let linkButton = document.createElement('button');
-    linkButton.id = 'ShammamCopyLinkButton';
-    linkButton.setAttribute('class', 'solidbutton fabtn notext');
-    linkButton.setAttribute('title', 'Copy formatted ticket link');
-    linkButton.appendChild(linkITag);
-
-    // Create new elements for the ticket number only copy button
-    let numberITag = document.createElement('i');
-    numberITag.id = 'ShammamCopyNumberI';
-    numberITag.setAttribute('class', 'fa fa-hashtag');
-    let numberButton = document.createElement('button');
-    numberButton.id = 'ShammamCopyNumberButton';
-    numberButton.setAttribute('class', 'solidbutton fabtn notext');
-    numberButton.setAttribute('title', 'Copy ticket number');
-    numberButton.appendChild(numberITag);
-
-    // Create new elements for the customer/account number copy button (company icon)
-    let accountITag = document.createElement('i');
-    accountITag.id = 'ShammamCopyAccountI';
-    accountITag.setAttribute('class', 'fa fa-building');
-    let accountButton = document.createElement('button');
-    accountButton.id = 'ShammamCopyAccountButton';
-    accountButton.setAttribute('class', 'solidbutton fabtn notext');
-    accountButton.setAttribute('title', 'Copy customer account ID');
-    accountButton.appendChild(accountITag);
+    // Buttons are identified by data-shammam (not by id): with several Halo tabs open
+    // there can be several sets of buttons on the page at once.
+    let linkButton = createShammamButton('link', 'fa-link', 'Copy formatted ticket link');
+    let numberButton = createShammamButton('number', 'fa-ticket', 'Copy ticket number');
+    let accountButton = createShammamButton('account', 'fa-building', 'Copy customer account ID');
 
     // Add new elements to DOM
+    // Since the Nov 2026 update Halo wraps the Share button in a <div> with its own
+    // hover/click handlers that open the share menu. Insert our buttons after that
+    // wrapper (the direct child of .buttons-container), not inside it; on older
+    // layouts the Share button itself is the direct child.
     let shareButton = shareITag.closest('button');
-    shareButton.after(numberButton);
+    let anchor = shareButton.closest('.buttons-container > *') || shareButton;
+    anchor.after(numberButton);
     // place account button next to the ticket number button
-    shareButton.after(accountButton);
-    shareButton.after(linkButton);
+    anchor.after(accountButton);
+    anchor.after(linkButton);
 
     // Get ticket ID from page URL
     let url = new URL(window.location.href);
     let urlSearchParams = new URLSearchParams(url.search);
-    ticketId = urlSearchParams.get('id');
+    let ticketId = urlSearchParams.get('id');
     ticketId = ticketId.replace(/^0+/, ''); // Remove leading 0 otherwise javascript treats this as an octal number
 
     // Make api call using message passing to background script
@@ -789,21 +801,21 @@ async function AddShammamCopyButton(shareITag, localStorage) {
         // Use secure event listeners instead of onclick attributes
         linkButton.addEventListener('click', function() {
             const data = this.ticketData;
-            ShammamCopy(data.domain, data.id, data.klantId, data.client, data.summary);
+            ShammamCopy(data.domain, data.id, data.klantId, data.client, data.summary, this);
         });
         
         numberButton.addEventListener('click', function() {
-            ShammamCopyNumber(this.ticketData.id);
+            ShammamCopyNumber(this.ticketData.id, this);
         });
     } catch (error) {
         console.error('Error fetching ticket data:', error);
         // Still add the buttons even if API call fails - use secure event listeners
         linkButton.addEventListener('click', function() {
-            ShammamCopy(localStorage.haloDomain, ticketId, null, 'Error loading client', 'Error loading summary');
+            ShammamCopy(localStorage.haloDomain, ticketId, null, 'Error loading client', 'Error loading summary', this);
         });
         
         numberButton.addEventListener('click', function() {
-            ShammamCopyNumber(ticketId);
+            ShammamCopyNumber(ticketId, this);
         });
     }
 
@@ -851,7 +863,7 @@ async function AddShammamCopyButton(shareITag, localStorage) {
     if (accountId != null) {
         accountButton.accountId = accountId;
         accountButton.addEventListener('click', function() {
-            ShammamCopyAccountDirect(this.accountId);
+            ShammamCopyAccountDirect(this.accountId, this);
         });
     }
     else if (ticket && ticket.client_id != null) {
@@ -862,22 +874,22 @@ async function AddShammamCopyButton(shareITag, localStorage) {
         };
         accountButton.addEventListener('click', async function() {
             try {
-                await ShammamCopyAccountFetch(this.clientData.domain, this.clientData.clientId);
+                await ShammamCopyAccountFetch(this.clientData.domain, this.clientData.clientId, this);
             } catch (error) {
                 console.error('Error in account fetch:', error);
-                ShammamCopyAccountNotFound();
+                ShammamCopyAccountNotFound(this);
             }
         });
     }
     else {
         // no place to look up the account id
         accountButton.addEventListener('click', function() {
-            ShammamCopyAccountNotFound();
+            ShammamCopyAccountNotFound(this);
         });
     }
 }
 
-async function ShammamCopy(HaloDomain, TicketId, KlantId, TicketClient, TicketSummary) {
+async function ShammamCopy(HaloDomain, TicketId, KlantId, TicketClient, TicketSummary, button) {
     // Build the ticket link and description from the parameters passed
     let ticketLink = 'https://' + HaloDomain + '/ticket?id=' + TicketId;
     
@@ -903,46 +915,42 @@ async function ShammamCopy(HaloDomain, TicketId, KlantId, TicketClient, TicketSu
     }
 
     // Change styling of Shammam button to a check mark
-    let linkI = document.querySelector('#ShammamCopyLinkI');
-    if (linkI) linkI.setAttribute('class', 'fa fa-check-circle');
+    setShammamIcon(button, 'fa-check-circle');
 
     // After a couple seconds revert Shammam button back to normal styling
     setTimeout(() => {
-        let linkIRev = document.querySelector('#ShammamCopyLinkI');
-        if (linkIRev) linkIRev.setAttribute('class', 'fa fa-link');
+        setShammamIcon(button, 'fa-link');
     }, 3000);
 }
 
-function ShammamCopyNumber(TicketId) {
+function ShammamCopyNumber(TicketId, button) {
     // Copy ticket number as trimmed plaintext using modern Clipboard API with fallback
     CopyPlainTextToClipboard(TicketId);
 
     // Change styling of number button to a check mark
-    document.querySelector('#ShammamCopyNumberI').setAttribute('class', 'fa fa-check-circle');
+    setShammamIcon(button, 'fa-check-circle');
 
     // After a couple seconds revert number button back to normal styling
     let p = new Promise((resolve, reject) => {
         setTimeout(resolve, 3000);
     }).then(() => {
-        document.querySelector('#ShammamCopyNumberI').setAttribute('class', 'fa fa-hashtag');
+        setShammamIcon(button, 'fa-ticket');
     });
 }
 
 // Copy account id directly (value already known)
-function ShammamCopyAccountDirect(AccountId) {
+function ShammamCopyAccountDirect(AccountId, button) {
     // Copy account id as trimmed plaintext using modern Clipboard API with fallback
     CopyPlainTextToClipboard(AccountId);
 
     // Change styling of account button to a check mark
-    let el = document.querySelector('#ShammamCopyAccountI');
-    if (el) el.setAttribute('class', 'fa fa-check-circle');
+    setShammamIcon(button, 'fa-check-circle');
 
     // After a couple seconds revert account button back to building icon
     let p = new Promise((resolve, reject) => {
         setTimeout(resolve, 3000);
     }).then(() => {
-        let e2 = document.querySelector('#ShammamCopyAccountI');
-        if (e2) e2.setAttribute('class', 'fa fa-building');
+        setShammamIcon(button, 'fa-building');
     });
 }
 
@@ -981,11 +989,10 @@ function CopyPlainTextToClipboard(text) {
 }
 
 // Fetch client details and try to extract the account id ($ACCOUNTSID / Customer ID for Accounting Integration)
-async function ShammamCopyAccountFetch(HaloDomain, ClientId) {
+async function ShammamCopyAccountFetch(HaloDomain, ClientId, button) {
     try {
         // Show spinner/feedback by swapping icon
-        let el = document.querySelector('#ShammamCopyAccountI');
-        if (el) el.setAttribute('class', 'fa fa-spinner fa-spin');
+        setShammamIcon(button, 'fa-spinner fa-spin');
 
         console.log('Fetching client data for ID:', ClientId, 'on domain:', HaloDomain);
 
@@ -1113,41 +1120,29 @@ async function ShammamCopyAccountFetch(HaloDomain, ClientId) {
         console.log('Final account ID found:', accountId);
 
         if (accountId != null && accountId !== '0') {
-            ShammamCopyAccountDirect(accountId);
+            ShammamCopyAccountDirect(accountId, button);
             return;
         }
 
         // if still not found, show not found feedback
         console.log('Account ID not found in client data, showing not found feedback');
-        ShammamCopyAccountNotFound();
+        ShammamCopyAccountNotFound(button);
     }
     catch (e) {
         console.log('Error fetching client for account id:', e);
         
         // Show more helpful error message
-        let el = document.querySelector('#ShammamCopyAccountI');
-        if (el) {
-            el.setAttribute('class', 'fa fa-exclamation-triangle');
-            el.setAttribute('title', 'Could not fetch client data. The account ID may need to be found manually.');
-        }
+        setShammamIcon(button, 'fa-exclamation-triangle', 'Could not fetch client data. The account ID may need to be found manually.');
         
         // Revert to building icon after a while
         setTimeout(() => {
-            let e2 = document.querySelector('#ShammamCopyAccountI');
-            if (e2) {
-                e2.setAttribute('class', 'fa fa-building');
-                e2.setAttribute('title', 'Copy account ID');
-            }
+            setShammamIcon(button, 'fa-building', 'Copy account ID');
         }, 5000); // Longer timeout to show the error
     }
 }
 
-function ShammamCopyAccountNotFound() {
-    let el = document.querySelector('#ShammamCopyAccountI');
-    if (el) {
-        el.setAttribute('class', 'fa fa-question-circle');
-        el.setAttribute('title', 'Account ID not found automatically. Check client details manually.');
-    }
+function ShammamCopyAccountNotFound(button) {
+    setShammamIcon(button, 'fa-question-circle', 'Account ID not found automatically. Check client details manually.');
 
     // Show a more helpful message in console
     console.log('Account ID not found. You may need to:');
@@ -1159,10 +1154,6 @@ function ShammamCopyAccountNotFound() {
     let p = new Promise((resolve, reject) => {
         setTimeout(resolve, 5000);
     }).then(() => {
-        let e2 = document.querySelector('#ShammamCopyAccountI');
-        if (e2) {
-            e2.setAttribute('class', 'fa fa-building');
-            e2.setAttribute('title', 'Copy customer account ID');
-        }
+        setShammamIcon(button, 'fa-building', 'Copy customer account ID');
     });
 }
