@@ -17,7 +17,8 @@ async function getOptions() {
         localstorage.haloPlanDateFieldId === undefined ||
         localstorage.haloPlanDateFieldName === undefined ||
         localstorage.haloPlanDateDashes === undefined ||
-        localstorage.haloAwaitingReviewEnabled === undefined;
+        localstorage.haloAwaitingReviewEnabled === undefined ||
+        localstorage.haloA11yEnabled === undefined;
 
     if (needsUpdate) {
         if (localstorage.haloDomain === undefined) {
@@ -44,6 +45,9 @@ async function getOptions() {
         if (localstorage.haloAwaitingReviewEnabled === undefined) {
             localstorage.haloAwaitingReviewEnabled = true;
         }
+        if (localstorage.haloA11yEnabled === undefined) {
+            localstorage.haloA11yEnabled = false;
+        }
 
         // Save changes only if needed
         await chrome.storage.local.set(localstorage);
@@ -58,6 +62,7 @@ async function getOptions() {
     document.getElementById('haloPlanDateFieldNameTextBox').value = localstorage.haloPlanDateFieldName || 'Plandatum';
     document.getElementById('haloPlanDateDashesCheckbox').checked = localstorage.haloPlanDateDashes;
     document.getElementById('haloAwaitingReviewEnabledCheckbox').checked = localstorage.haloAwaitingReviewEnabled;
+    document.getElementById('haloA11yEnabledCheckbox').checked = localstorage.haloA11yEnabled;
 }
 
 async function setOptions() {
@@ -71,6 +76,7 @@ async function setOptions() {
     let haloPlanDateFieldName = document.getElementById('haloPlanDateFieldNameTextBox').value.trim() || 'Plandatum';
     let haloPlanDateDashes = document.getElementById('haloPlanDateDashesCheckbox').checked;
     let haloAwaitingReviewEnabled = document.getElementById('haloAwaitingReviewEnabledCheckbox').checked;
+    let haloA11yEnabled = document.getElementById('haloA11yEnabledCheckbox').checked;
 
     let localStorage = {
         'haloDomain': haloDomain,
@@ -80,7 +86,8 @@ async function setOptions() {
         'haloPlanDateFieldId': haloPlanDateFieldId,
         'haloPlanDateFieldName': haloPlanDateFieldName,
         'haloPlanDateDashes': haloPlanDateDashes,
-        'haloAwaitingReviewEnabled': haloAwaitingReviewEnabled
+        'haloAwaitingReviewEnabled': haloAwaitingReviewEnabled,
+        'haloA11yEnabled': haloA11yEnabled
     };
 
     await chrome.storage.local.set(localStorage);

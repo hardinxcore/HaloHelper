@@ -20,7 +20,8 @@ async function initializeSettings() {
             haloPlanDateFieldId: localStorage.haloPlanDateFieldId === undefined ? 239 : localStorage.haloPlanDateFieldId,
             haloPlanDateFieldName: localStorage.haloPlanDateFieldName === undefined ? 'Plandatum' : localStorage.haloPlanDateFieldName,
             haloPlanDateDashes: localStorage.haloPlanDateDashes === undefined ? true : localStorage.haloPlanDateDashes,
-            haloAwaitingReviewEnabled: localStorage.haloAwaitingReviewEnabled === undefined ? true : localStorage.haloAwaitingReviewEnabled
+            haloAwaitingReviewEnabled: localStorage.haloAwaitingReviewEnabled === undefined ? true : localStorage.haloAwaitingReviewEnabled,
+            haloA11yEnabled: localStorage.haloA11yEnabled === undefined ? false : localStorage.haloA11yEnabled
         };
         
         // Only update values that are undefined
@@ -132,9 +133,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
                 const tabInfo = await chrome.tabs.get(tab.id);
                 if (tabInfo && tabInfo.url && tabInfo.url.startsWith('https://' + localStorage.haloDomain)) {
+                    // content-a11y.js checks its own on/off setting
                     await chrome.scripting.executeScript({
                         target: { tabId: tab.id, allFrames: false },
-                        files: ['content-tickets.js']
+                        files: ['content-tickets.js', 'content-a11y.js']
                     });
                 }
             }

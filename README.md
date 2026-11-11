@@ -14,6 +14,7 @@ A modern Chrome / Microsoft Edge extension designed to improve the workflow for 
 - **Ticket History**: Click on the extension icon to see a quick popup with your 10 most recently visited tickets.
 - **Bulk Plan Date Update**: Select tickets on any ticket list page, open the native **Edit** dropdown, and choose **Set Plandate** (or **Set Plandatum** in Dutch). A modal shows each ticket's summary and current plan date. Set an absolute date or use the **+1 / +7 / +14** shift buttons to move the date relative to the current value. The modal automatically inherits the active HaloPSA theme (light or dark).
 - **Awaiting Review group-select**: On the *Awaiting Review* screen, clicking any row (or its checkbox) automatically selects every other action that belongs to the same ticket. Right-click once, choose **Review** or **Do not bill**, and the action is applied to every event of that ticket at the same time. Unchecking a row in the group clears the whole group again. Can be toggled off in extension options.
+- **Accessibility module** (optional, off by default): Improves HaloPSA for screen reader users. Adds the missing ARIA roles to Halo's tables (`rt-*`), dialogs, progress feed items, button bars and calendar events, and fixes dropdowns that announce "option [object Object] focused" by reading out the option's real name and context (e.g. `Lidy Moerbeek, Franchesia BV/Amsterdam`). Enable it under **Accessibility module** in extension options and reload Halo.
 - **Secure & Fast**: Uses native Manifest V3 `MutationObserver` and Chrome's `ClipboardItem` API for instant, seamless integration. Authentication with the Halo API runs via your own active browser session cookies.
 
 ## 🚀 Installation (Developer Mode)
@@ -36,6 +37,9 @@ Since this extension is not published on the Chrome Web Store, you can install i
    - The maximum amount of recent tickets saved in your history (default: 10).
 
 ## � Changelog
+
+### v1.9.0 — 2026-11-11
+- **Accessibility module**: New optional module for screen reader users. Halo's tables, dialogs, progress feed and button bars get proper ARIA roles, and dropdowns (such as the end-user picker on a new ticket) announce the option's name instead of "[object Object]", also after selecting an option. Off by default; enable it in extension options.
 
 ### v1.8.1 — 2026-11-11
 - **Quick Copy buttons work again after the November 2026 HaloPSA update**: Halo now renders its icons as Font Awesome 6 SVGs, so the buttons were no longer added next to the Share button.
