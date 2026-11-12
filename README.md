@@ -38,6 +38,9 @@ Since this extension is not published on the Chrome Web Store, you can install i
 
 ## � Changelog
 
+### v1.9.1 — 2026-11-12
+- **New icon**: The extension icon now uses HaloPSA's new blue logo instead of the old red one.
+
 ### v1.9.0 — 2026-11-11
 - **Accessibility module**: New optional module for screen reader users. Halo's tables, dialogs, progress feed and button bars get proper ARIA roles, and dropdowns (such as the end-user picker on a new ticket) announce the option's name instead of "[object Object]", also after selecting an option. Off by default; enable it in extension options.
 
